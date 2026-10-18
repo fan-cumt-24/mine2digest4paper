@@ -293,6 +293,13 @@ pytest -m integration     # 仅需 MINE2DIGEST_AGENT_CMD 的真实 agent 冒烟
 
 ### 2026-10-18
 
+**skill：启动时先澄清需求（intake）**
+
+- 触发 skill 后、跑任何数据命令前，先用宿主提问能力（如 opencode `question`）**逐步**问清
+  研究主题、研究问题/论点、目标节、文献范围、已有材料、规模与预算、交付物、是否放宽阈值。
+- 答案写入工作区 `config/experiment_brief.md`；回述「理解 + 裁剪后的 P1–P8 计划」确认后再
+  进入 P0。需求不清时点明风险并给最小默认方案，而非硬跑（见 SKILL.md“启动：先澄清需求”）。
+
 **优化：阅读/反证的 token 成本（载荷离线化 + 页预选 + 按论文去重）**
 
 - 背景：`next-reading` / `next-caveat` 把**整篇页文本内联在 stdout**，编排 agent 与子任务
