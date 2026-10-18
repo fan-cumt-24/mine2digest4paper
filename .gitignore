@@ -1,4 +1,6 @@
 # 私密配置（含 UNPAYWALL_EMAIL 等）
+# 固化在 skill 自身目录的 .env（项目内）；全局安装时在 ~/.config/opencode/skills/mine2digest/.env
+.opencode/skills/mine2digest/.env
 config/.env
 
 # 运行时产物

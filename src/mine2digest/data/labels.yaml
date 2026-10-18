@@ -48,3 +48,6 @@ thresholds:
   reader_char_budget: 12000
   caveat_top_k: 6
   caveat_char_budget: 8000
+  # 图表设计建议：从图表语料挑选参考图的条数与字符预算
+  figure_top_k: 8
+  figure_char_budget: 8000

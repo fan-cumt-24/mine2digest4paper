@@ -55,6 +55,74 @@ def iso_now() -> str:
     return datetime.now(timezone.utc).replace(microsecond=0).isoformat()
 
 
+# --- 密钥 / .env ---
+#
+# 密钥**固化在 skill 自身目录**的 `.env`（项目：`<repo>/.opencode/skills/mine2digest/.env`；
+# 全局：`~/.config/opencode/skills/mine2digest/.env`），**绝不放进工作区**。CLI/脚本启动时
+# 自动加载（非覆盖已有进程变量）；`MINE2DIGEST_ENV` 可显式指定文件。
+
+
+def _skill_env_candidates() -> list[Path]:
+    candidates: list[Path] = []
+    cwd = Path.cwd()
+    for base in (cwd, *cwd.parents):
+        candidates.append(base / ".opencode" / "skills" / "mine2digest" / ".env")
+    try:
+        repo = PACKAGE_DATA.parents[2]
+        candidates.append(repo / ".opencode" / "skills" / "mine2digest" / ".env")
+        candidates.append(repo / "config" / ".env")  # 旧位置，向后兼容
+    except IndexError:  # pragma: no cover - 只在异常安装布局下发生
+        pass
+    candidates.append(Path.home() / ".config" / "opencode" / "skills" / "mine2digest" / ".env")
+    return candidates
+
+
+def env_path() -> Path | None:
+    """解析 .env 文件：`MINE2DIGEST_ENV` > skill 目录 `.env`（向上查找）> 全局 skill > 旧位置。"""
+    explicit = os.environ.get("MINE2DIGEST_ENV")
+    if explicit:
+        return Path(explicit)
+    seen: set[Path] = set()
+    for candidate in _skill_env_candidates():
+        key = candidate.resolve()
+        if key in seen:
+            continue
+        seen.add(key)
+        if candidate.exists():
+            return candidate
+    return None
+
+
+def parse_env_text(text: str) -> list[tuple[str, str]]:
+    """解析简单 KEY=VALUE（忽略空行/# 注释，去除首尾引号）。"""
+    pairs: list[tuple[str, str]] = []
+    for line in (text or "").splitlines():
+        line = line.strip()
+        if not line or line.startswith("#") or "=" not in line:
+            continue
+        key, _, value = line.partition("=")
+        key = key.strip()
+        if not key:
+            continue
+        value = value.strip().strip('"').strip("'")
+        pairs.append((key, value))
+    return pairs
+
+
+def load_env_file(path: str | Path | None = None) -> Path | None:
+    """加载 .env（非覆盖：已存在的环境变量优先）；返回加载的文件路径，未找到返回 None。"""
+    target = Path(path) if path else env_path()
+    if target is None or not target.is_file():
+        return None
+    try:
+        text = target.read_text(encoding="utf-8")
+    except OSError:
+        return None
+    for key, value in parse_env_text(text):
+        os.environ.setdefault(key, value)
+    return target
+
+
 def ok(**kw: Any) -> dict:
     return {"ok": True, **kw}
 

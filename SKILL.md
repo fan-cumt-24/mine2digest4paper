@@ -14,7 +14,7 @@ description: Use when running the mine2digest literature pipeline — dual-agent
 - 统一契约：JSON in / JSON out；成功 `{"ok": true, ...}`，失败 `{"ok": false, "reason": ...}` 且退出码 1。
 - 筛选必须由 **两个独立上下文** 分别执行 A（PICO）与 B（规则表），互不共享中间结论。
 - `source_span` 必须逐字来自页文本；locator 默认 `partial_ratio >= 75`，任一卡失败整批回滚。
-- 阈值只在 `config/labels.yaml`；密钥只在 `config/.env`，不得写入 skill/日志/命令参数。
+- 阈值只在 `config/labels.yaml`；密钥固化在 skill 目录的 `.env`（CLI 自动加载），不得写入工作区/日志/命令参数。
 
 最小流程：
 

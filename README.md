@@ -62,9 +62,13 @@ pytest -q
 | `export` | 2 | 已实现 |
 | `revive` | 2 | 已实现 |
 | `templates extract` | 3 | 已实现 |
-| `figures generate` | 3 | 已实现 |
+| `figures extract` | 3 | 已实现 |
+| `figures suggest` | 3 | 已实现 |
+| `figures add-notes` | 3 | 已实现 |
+| `figures verify` | 3 | 已实现 |
 | `draft` | 4 | 已实现 |
 | `verify` | 4 | 已实现 |
+| `clean` | 4 | 已实现 |
 
 ## 作为 skill / 工具使用
 
@@ -185,7 +189,7 @@ mine2digest revive --paper-id <id>                                         # 显
   - `--gaps` / `--type+--section`：`low_priority → queued`（`--gaps` 自动跳过 `background` 空格）。
   - `--paper-id`：`discarded → candidate`（清旧票与合并快照以便重筛）或 `low_priority → queued`。
 
-### 结构模板与图表（C1 / C3）
+### 结构模板与图表设计建议（C1 / C3）
 
 ```bash
 # C1 结构模板：style_sample 已确认卡优先；不足时回退到“目标 venue”的 fetched 论文
@@ -194,17 +198,27 @@ mine2digest templates extract --section intro --section method
 # -> outputs/structure_templates.json
 #    字段：target_section / source_paper_id / card_id / source_span / venue / confidence / provisional
 
-# C3 图表：包装 PaperBanana CLI
-mine2digest figures generate --input method.txt --caption "Pipeline overview" --fig-id fig-1
-# -> outputs/figures/{fig_id}.png + .src.py + .manifest.json
+# C3 图表设计建议：先抽“图表语料”，再据语料给建议（不再生成图片）
+mine2digest figures extract                       # -> outputs/figure_corpus.json（图注 + 引用上下文）
+mine2digest figures extract --kind table          # 只抽表注
+mine2digest figures extract --render --dpi 150    # 附带把图注页渲染成 PNG（视觉模型读图用）
+mine2digest figures suggest --input intent.txt --fig-id fig-1
+# -> outputs/figures/fig-1.suggestion.md + fig-1.prompt.md（可选 --polish 直出 .polished.md）
+mine2digest figures add-notes --file tmp/fignotes.json   # 视觉读图观察 -> outputs/figures/design_notes.json
+mine2digest figures verify --file outputs/figures/fig-1.polished.md
 ```
 
 - `templates extract`：每个 section 取最佳 `style_sample` 已确认卡（`provisional=false`）；
   无则用"目标 venue"（已确认 style_sample 卡里最常见的 venue）的 `fetched` 论文（`provisional=true`）。
   被 B 整体证伪（`status=rejected`）的来源不会被选。
-- `figures generate` 调用 `paperbanana generate --input <f> --caption <c>`（可执行名由
-  环境变量 `MINE2DIGEST_PAPERBANANA` 覆盖，可含参数），在临时目录运行后把 `*.png` /
-  `*.src.py` 规范化重命名为 `{fig_id}.png` / `{fig_id}.src.py`，并写 `{fig_id}.manifest.json`。
+- `figures extract`：确定性扫描工作区论文的页文本，抽取 `Figure/Table N:` 图注 + 正文引用句，
+  按"style_sample 优先、其次目标 venue"排序写入 `figure_corpus.json`；`--render` 额外把图注所在页
+  渲染成 `outputs/figures/pages/<slug>-p<N>.png`（PyMuPDF，零新依赖），供**支持视觉的宿主模型读图**。
+- `figures suggest`：按输入意图与语料的词面相关度（复用 `pdf/select.py`）挑参考图，产出设计建议
+  骨架 + 打磨 prompt；`--polish` 走 `MINE2DIGEST_FIGURE_CMD`（stdin→stdout，超时
+  `MINE2DIGEST_FIGURE_TIMEOUT`），机制同 `draft`。建议里只能引用 `[fig:<ref>]`。
+- `figures add-notes`：写入视觉读图得到的设计观察（`FigureNote`），`ref` 必须在语料内。
+- `figures verify`：校验建议中的 `[fig:<ref>]` 是否都能在语料/观察中找到，无效引用 → `ok:false`。
 
 ### 逐节草稿与回溯校验（C4）
 
@@ -231,18 +245,30 @@ mine2digest verify --file drafts/intro.polished.md --require-refs
   有无效 ref 时 `{"ok": false, "reason": "invalid evidence_ref"}` 且退出码 1。
 - `--require-refs` 会要求 `## Claims` 下每条顶层 bullet 都带 ref。
 
-## 环境变量
+## 环境变量与密钥（skill 目录 `.env`）
+
+密钥/配置**固化在 skill 自身目录的 `.env`**（与 `SKILL.md` 同目录），CLI 与脚本启动时
+**自动加载**（已存在的进程变量优先，不覆盖）：
+
+- 项目内：`.opencode/skills/mine2digest/.env`
+- 全局安装：`~/.config/opencode/skills/mine2digest/.env`
+- 显式指定：`MINE2DIGEST_ENV=/abs/path/.env`
+- 模板见同目录 `.env.example`（`python scripts/install_skill.py` 会自动放置模板与空 `.env`）
+
+**不要放进工作区 `m2d/`**，也不要写进命令参数、日志或 brief。
 
 | 变量 | 用途 | 默认 |
 |---|---|---|
-| `MINE2DIGEST_DB` | DB 路径覆盖 | `db/mine2digest.sqlite` |
+| `MINE2DIGEST_ENV` | `.env` 文件路径覆盖 | 自动探测（见上） |
+| `MINE2DIGEST_DB` | DB 路径覆盖 | `<ws>/db/mine2digest.sqlite` |
 | `MINE2DIGEST_LABELS` | labels.yaml 路径覆盖 | `config/labels.yaml` |
 | `OPENALEX_API_KEY` | OpenAlex 认证（脚本用，可选） | 无 |
 | `S2_API_KEY` | Semantic Scholar（脚本用，可选） | 无 |
 | `UNPAYWALL_EMAIL` | Unpaywall 联系邮箱（1c 用） | 无 |
-| `MINE2DIGEST_PAPERBANANA` | PaperBanana 可执行（3 用，可含参数） | `paperbanana` |
 | `MINE2DIGEST_DRAFT_CMD` | `draft --polish` 的外部命令（stdin→stdout） | 无 |
 | `MINE2DIGEST_DRAFT_TIMEOUT` | 打磨命令超时秒数 | `300` |
+| `MINE2DIGEST_FIGURE_CMD` | `figures suggest --polish` 的外部命令（stdin→stdout） | 无 |
+| `MINE2DIGEST_FIGURE_TIMEOUT` | 图表打磨命令超时秒数 | `300` |
 
 ## Live 烟测（可选，非产品主路径）
 
@@ -256,7 +282,7 @@ python scripts/live_e2e.py --fresh --phases 0,1,2,3,4,5,6,7
 ```
 
 可调：`MINE2DIGEST_LIVE_AGENTS`（默认 `A,B`）、`MINE2DIGEST_LIVE_CANDIDATES`（默认 6）、
-`MINE2DIGEST_LIVE_ATTEMPTS`（默认 3）。凭据只放 `config/.env`（已 gitignore）。
+`MINE2DIGEST_LIVE_ATTEMPTS`（默认 3）。凭据来自 skill 目录 `.env`（已 gitignore）。
 
 ## 测试分层（尤其是 agent 调用侧）
 
@@ -272,7 +298,7 @@ agent 是外部进程，只能通过 CLI 交互，因此测的是**契约面**�
 | `test_audit.py` | 契约 | 反证 / 审计抽样 / 权重更新 / 驳回 |
 | `test_query.py` | 契约 | 覆盖矩阵 / 查询排序 / 回溯 / 导出 / 复活赛 |
 | `test_templates.py` | 契约 | 结构模板：已确认优先 + venue 回退 provisional |
-| `test_figures.py` | 契约 | PaperBanana 包装 + 产物规范化（注入 stub 可执行） |
+| `test_figures.py` | 契约 | 图表语料抽取 + 设计建议 + 读图观察 + 引用校验 |
 | `test_agent_live.py` | 集成(可选) | 真调 LLM，校验输出过 schema |
 | `test_tools_schema.py` | 一致性 | `docs/tools.json` 与 CLI 命令/参数同步 |
 | `test_skill.py` | 一致性 | skill 覆盖全部命令/角色、资产存在、无密钥泄露 |
@@ -289,9 +315,57 @@ pytest -m integration     # 仅需 MINE2DIGEST_AGENT_CMD 的真实 agent 冒烟
 - 状态迁移只能经 `db.transition()`（内建状态机守卫）。
 - 用途向量落在 `confirmed_uses` 表（`screening_merged` 只存投票合并快照）。
 
+## 维护 tmp/
+
+工作区 `tmp/` 存放可再生的中间载荷（`read*.json`、`caveat*.json`、`cards_*.json`、
+`votes_*.json`、`screen_*.json`、`seeds_*.jsonl` 等）。清理：
+
+```bash
+mine2digest clean --dry-run              # 先看会删什么
+mine2digest clean                        # 只删上述可再生中间文件，保留 *.py / 说明文本等
+mine2digest clean --older-than 24        # 只删早于 24 小时的
+mine2digest clean --all                  # 清空整个 tmp/
+```
+
+默认是**保守**的：只匹配内置载荷 glob，不动来历不明的文件；`--pattern` 可自定义。
+
 ## 变更记录
 
 ### 2026-10-18
+
+**变更：密钥/配置固化到 skill 目录 `.env`（自动加载）**
+
+- 密钥不再放 `config/.env`，改放 **skill 自身目录**：项目 `.opencode/skills/mine2digest/.env`，
+  全局 `~/.config/opencode/skills/mine2digest/.env`；模板见同目录 `.env.example`。
+- CLI（`cli.py` 导入时）与脚本（`openalex_seed`/`s2_expand`/`fetch_worker`/`agent_cli`/`live_e2e`）
+  **自动加载且不覆盖**已有进程变量；`MINE2DIGEST_ENV` 可显式指定文件。
+- `install_skill.py` 安装时放置 `.env.example` 并在缺失时创建空 `.env`；`.gitignore` 忽略之。
+  新增 `tests/test_env.py`；旧 `config/.env`（仅密钥）已迁移。
+- SKILL.md 需求确认新增“环境变量/密钥”一问；铁律 6、资产自检同步更新。
+
+**新增：`clean` 清理工作区 tmp/**
+
+- `mine2digest clean`：默认只删可再生的中间载荷（`read*.json`/`caveat*.json`/`cards_*.json`/
+  `votes_*.json`/`screen_*.json`/`audit*.json`/`coverage.json`/`seeds_*.jsonl`），**保留** `*.py`、
+  说明文本等未知文件；`--dry-run` 预览、`--older-than N`（小时）按时间过滤、`--pattern` 自定义、
+  `--all` 清空整个 `tmp/`。实测本轮工作区 `tmp/` 约 4.9 MB。
+- 新增 `src/mine2digest/commands/c_clean.py`、`tests/test_clean.py`；命令表/skill/`docs/tools.json` 同步。
+
+**重构：图表生成 → 图表设计建议（移除 PaperBanana）**
+
+- 原 `figures generate` 只是 PaperBanana 包装（未安装即 skip），改为从优秀论文的**图表语料**
+  出发给设计建议，并**移除对外部二进制与 `MINE2DIGEST_PAPERBANANA` 的依赖**。
+- 新增 `figures extract`（确定性）：扫描工作区论文页文本，抽取 `Figure/Table N:` 图注 + 正文
+  引用句，按 style_sample 优先/目标 venue 排序写 `outputs/figure_corpus.json`；`--render` 用
+  PyMuPDF 把图注页渲染成 PNG（`pdf/render.py`），供**支持视觉的宿主模型读图**。
+- 新增 `figures suggest`：按输入意图与语料词面相关度（复用 `pdf/select.py`）挑参考图，产出
+  `outputs/figures/<fig-id>.suggestion.md` 骨架 + `.prompt.md`；`--polish` 走
+  `MINE2DIGEST_FIGURE_CMD`（同 `draft`）。预算阈值 `figure_top_k`/`figure_char_budget`。
+- 新增 `figures add-notes`（视觉读图观察，pydantic `FigureNote`/`FigureNoteFile` 校验 ref）与
+  `figures verify`（校验 `[fig:<ref>]` 都在语料/观察中，杜绝臆造参考）。
+- skill intake 增加“接入模型能否读图”一问；资产新增 `config/figure_prompts/designer.md`。
+- 测试：重写 `tests/test_figures.py`（extract/suggest/add-notes/verify + stub polish）；
+  更新 `test_tools_schema.py`、`live_e2e.py` P6、`docs/tools.json`。全套 `182 passed, 1 skipped`。
 
 **skill：启动时先澄清需求（intake）**
 

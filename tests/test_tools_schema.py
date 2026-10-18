@@ -36,9 +36,13 @@ EXPECTED = {
     "export",
     "revive",
     "templates extract",
-    "figures generate",
+    "figures extract",
+    "figures suggest",
+    "figures add-notes",
+    "figures verify",
     "draft",
     "verify",
+    "clean",
 }
 
 STDIN_MODELS = {
@@ -46,6 +50,7 @@ STDIN_MODELS = {
     "add-card": "CardFile",
     "add-caveat": "Caveat",
     "submit-audit": "AuditFile",
+    "figures add-notes": "FigureNoteFile",
 }
 
 

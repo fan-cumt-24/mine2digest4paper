@@ -53,6 +53,15 @@ def load_env_file(path: Path) -> None:
         os.environ.setdefault(key.strip(), value.strip())
 
 
+def load_credentials() -> None:
+    """密钥固化在 skill 目录 .env；再回退旧位置 config/.env。"""
+    sys.path.insert(0, str(SRC))
+    from mine2digest import common
+
+    if common.load_env_file() is None:
+    load_credentials()
+
+
 def redact(text: str) -> str:
     secret = os.environ.get("UNPAYWALL_EMAIL")
     if secret:
@@ -413,14 +422,18 @@ def phase6() -> None:
     code, body = cli(["templates", "extract"])
     record("P6", "templates", "pass" if body.get("ok") else "fail", f"count={body.get('count')}")
 
-    exe = os.environ.get("MINE2DIGEST_PAPERBANANA") or shutil.which("paperbanana")
-    if not exe:
-        record("P6", "figures", "skip", "paperbanana not installed")
-        return
-    method = WS / "method.txt"
-    method.write_text("CLIP text encoder + image encoder; cross-modal alignment; downstream adapter.", encoding="utf-8")
-    code, body = cli(["figures", "generate", "--input", str(method), "--caption", "Overview of CLIP multi-modal pipeline", "--fig-id", "fig-live"])
-    record("P6", "figures", "pass" if body.get("ok") else "fail", redact(str(body.get("reason", "")))[:120])
+    code, ex = cli(["figures", "extract"])
+    record("P6", "figures extract", "pass" if ex.get("ok") else "fail",
+           f"count={ex.get('count')} figure={ex.get('figure_count')} table={ex.get('table_count')}")
+
+    intent = WS / "figure_intent.txt"
+    intent.write_text(
+        "Overview of a CLIP multi-modal pipeline: text encoder, image encoder, cross-modal alignment.",
+        encoding="utf-8",
+    )
+    code, sg = cli(["figures", "suggest", "--input", str(intent), "--fig-id", "fig-live"])
+    record("P6", "figures suggest", "pass" if sg.get("ok") else "fail",
+           f"refs={sg.get('references')} reason={redact(str(sg.get('reason', '')))[:80]}")
 
 
 def phase7() -> None:

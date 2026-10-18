@@ -21,6 +21,9 @@ REPO = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(REPO / "src"))
 
 from mine2digest import fetchers  # noqa: E402
+from mine2digest import common  # noqa: E402
+
+common.load_env_file()  # 自动加载 skill 目录 .env（UNPAYWALL_EMAIL 等）
 
 
 def call_cli(args: list[str]) -> dict:

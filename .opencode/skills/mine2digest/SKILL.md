@@ -1,6 +1,6 @@
 ---
 name: mine2digest
-description: Use ONLY when the task involves the mine2digest repository or CLI — discover and dual-screen papers, fetch PDFs, extract evidence cards with locator checks, caveats/audit, coverage/query/export, draft/verify, templates and figures. Triggers on "mine2digest", "screen candidates", "evidence card", "coverage matrix", "literature digest". All artifacts land in a workspace folder (m2d/) created in the current working directory.
+description: Use ONLY when the task involves the mine2digest repository or CLI — discover and dual-screen papers, fetch PDFs, extract evidence cards with locator checks, caveats/audit, coverage/query/export, draft/verify, templates and figure design suggestions. Triggers on "mine2digest", "screen candidates", "evidence card", "coverage matrix", "literature digest". All artifacts land in a workspace folder (m2d/) created in the current working directory.
 ---
 
 # mine2digest
@@ -26,8 +26,14 @@ CLI 完成。
   4. 文献范围：时间窗、venue/领域、语言、候选数量上限；
   5. 已有材料：BibTeX / DOI 列表 / 本地 PDF；
   6. 规模与预算：预计篇数，是否在意 token 与耗时；
-  7. 交付物：只要证据卡/覆盖矩阵，还是要逐节草稿、（可选）图表；
-  8. 是否允许放宽阈值（默认**不放宽**）。
+  7. 交付物：只要证据卡/覆盖矩阵，还是要逐节草稿、（可选）图表设计建议；
+  8. 环境变量/密钥：是否有 `UNPAYWALL_EMAIL`（Unpaywall 必填）、`OPENALEX_API_KEY`、
+     `S2_API_KEY`（可选）？指示用户放到**本技能目录的 `.env`**（与 SKILL.md 同目录；
+     项目内 `.opencode/skills/mine2digest/.env`，全局 `~/.config/opencode/skills/mine2digest/.env`），
+     CLI/脚本会自动加载——**绝不写进工作区、brief、命令参数或日志**。
+  9. 接入模型能力：**能否读图（vision）**？能用则图表建议可直接读图抽取设计；不确定就渲染一页
+     （`figures extract --render --limit 1`）后尝试 Read 该 PNG，能拿到图像即支持。答案记入 brief。
+  10. 是否允许放宽阈值（默认**不放宽**）。
 - 把答案写入/更新**工作区 `config/experiment_brief.md`**（若还没 `init`，先记下，P0 建好
   工作区后立即落盘）。brief 是筛选的唯一依据。
 - 给用户回述一版「我的理解 + 裁剪后的计划（P1–P8 取哪几步）与预期产物」，**确认后再进入 P0**。
@@ -42,9 +48,13 @@ CLI 完成。
   工作目录创建它，并写入标记 `m2d/.mine2digest`。此后 `db/`、`papers/`、`inbox/`、
   `exports/`、`drafts/`、`outputs/`、`logs/`、`tmp/` 全部落在工作区内。**绝不把产物
   写进安装目录或 skill 目录。**
-- **资产 = 安装目录（只读）**：`config/labels.yaml`、`config/*_prompts/`、`config/.env`、
+- **资产 = 安装目录（只读）**：`config/labels.yaml`、`config/*_prompts/`、
   `docs/tools.json`、`scripts/`。全局安装时安装器注入 `ASSETS=<安装目录>`；下文以
   `<ASSETS>/...` 指代这些只读文件。
+- **密钥/配置 = skill 自身目录的 `.env`**（与 SKILL.md 同目录）：项目内
+  `.opencode/skills/mine2digest/.env`，全局 `~/.config/opencode/skills/mine2digest/.env`。
+  CLI/脚本启动时**自动加载**（非覆盖已有进程变量）；**不进工作区**。可用
+  `MINE2DIGEST_ENV` 显式指定文件。见同目录 `.env.example`。
 
 工作区解析优先级：`$env:MINE2DIGEST_WORKSPACE` > 从 cwd 向上找到的带标记 `m2d/` >
 `<cwd>/m2d`。因此在项目根或其任意子目录运行命令都能命中同一工作区。覆盖：
@@ -71,7 +81,9 @@ CLI 完成。
 4. **`source_span` 必须逐字来自页文本**，禁止改写/翻译/拼接；locator 用
    `rapidfuzz.partial_ratio >= locator_fuzz_min`（默认 75）校验，**任一卡失败整批回滚**。
 5. **不得擅自修改阈值**（`<ASSETS>/config/labels.yaml` 的 `thresholds`）。需要放宽只能人工改并说明。
-6. **密钥只在 `<ASSETS>/config/.env`**（如 `UNPAYWALL_EMAIL`），绝不写进命令参数、日志、报告、技能。
+6. **密钥/配置固化在 skill 目录的 `.env`**（项目 `.opencode/skills/mine2digest/.env`；全局
+   `~/.config/opencode/skills/mine2digest/.env`，如 `UNPAYWALL_EMAIL`），CLI/脚本自动加载；
+   绝不写进工作区、命令参数、日志、报告或技能正文。
 7. **主 agent 只派发与提交，不代替角色投票/阅读**；A 的结论不得进入 B 的上下文。
 8. **先澄清需求再执行**（见“启动：先澄清需求”）；brief 落盘并确认后才进入 P0。
 
@@ -83,11 +95,13 @@ CLI 完成。
 | 工作区 `config/experiment_brief.md` | 研究主题/问题/论点，筛选依据（`init` 生成，人可编辑） |
 | `<ASSETS>/config/screening_prompts/agent_a.md`、`agent_b.md` | 双筛选角色提示词 |
 | `<ASSETS>/config/reading_prompts/reader.md`、`caveat.md`、`auditor.md` | 阅读/反证/审计提示词 |
+| `<ASSETS>/config/figure_prompts/designer.md` | 图表设计顾问提示词（读优秀论文图表语料） |
 | `<ASSETS>/docs/tools.json` | 每个命令的入参 schema 与 stdin schema |
 
 前置：`pip install -e ".[all]"`；在**当前工作目录**执行 `mine2digest init`。若
 `mine2digest` 不在 PATH，用 `python -m mine2digest.cli`。环境变量：`MINE2DIGEST_WORKSPACE`、
-`MINE2DIGEST_DB`、`MINE2DIGEST_LABELS`、`UNPAYWALL_EMAIL`、`MINE2DIGEST_PAPERBANANA`（详见 README）。
+`MINE2DIGEST_DB`、`MINE2DIGEST_LABELS`、`UNPAYWALL_EMAIL`、`MINE2DIGEST_FIGURE_CMD`（详见 README）。
+密钥默认从**本技能目录 `.env`** 自动加载（可用 `MINE2DIGEST_ENV` 覆盖位置）。
 
 ## 状态机
 
@@ -181,12 +195,21 @@ mine2digest reject-card --card-id <id> --reason "..."
 反证页预算 `caveat_top_k`/`caveat_char_budget`，优先并入该卡 `evidence_locator` 命中的页。
 `submit-audit` 按 source 聚合最近 `audit_window` 条样本，**按基准幂等重算**权重。
 
-**P6 模板与图表**
+**P6 模板与图表设计建议**
 ```bash
 mine2digest templates extract                      # -> <工作区>/outputs/structure_templates.json
-mine2digest figures generate --input method.txt --caption "..." --fig-id fig-1
+mine2digest figures extract                         # -> <工作区>/outputs/figure_corpus.json（图注+引用上下文）
+mine2digest figures extract --render --dpi 150      # 附带把图注页渲染成 PNG，供视觉模型读图
+mine2digest figures suggest --input intent.txt --fig-id fig-1
+# -> <工作区>/outputs/figures/fig-1.suggestion.md + fig-1.prompt.md
+# 默认：主 agent 用 task(general) 读 .prompt.md，产出 fig-1.polished.md；
+# 支持读图的模型让其先 Read 参考里的 page_image 再写设计。
+mine2digest figures add-notes --file tmp/fignotes.json   # 视觉读图观察 -> design_notes.json
+mine2digest figures verify --file outputs/figures/fig-1.polished.md
 ```
-`figures generate` 包装 PaperBanana（`MINE2DIGEST_PAPERBANANA` 可覆盖可执行）。
+`figures extract` 只抽**图注/表注 + 正文引用句**（确定性）；`suggest` 按词面相关度挑参考图并生成
+设计建议骨架与打磨 prompt（词面检索复用 `pdf/select.py`，预算 `figure_top_k`/`figure_char_budget`）。
+建议里只能引用 `[fig:<ref>]`（来自语料或 `add-notes`）；`verify` 校验引用都存在，杜绝臆造参考。
 
 **P7 覆盖、查询、导出、复活**
 ```bash
@@ -213,7 +236,8 @@ mine2digest verify --file drafts/intro.polished.md --require-refs
 `tally-votes`、`next-fetch`、`report-fetch`、`ingest-manual`、`next-reading`、
 `add-card`、`verify-card`、`next-caveat`、`add-caveat`、`audit`、`submit-audit`、
 `reject-card`、`coverage`、`query`、`lookup`、`export`、`revive`、
-`templates extract`、`figures generate`、`draft`、`verify`。
+`templates extract`、`figures extract`、`figures suggest`、`figures add-notes`、`figures verify`、
+`draft`、`verify`、`clean`。
 
 精确入参、required、stdin schema 以 `<ASSETS>/docs/tools.json` 为准。
 
@@ -228,7 +252,8 @@ mine2digest verify --file drafts/intro.polished.md --require-refs
 ## 资产自检
 
 运行前确认：`<ASSETS>/config/labels.yaml`、五个角色提示词、`docs/tools.json` 均存在；
-工作区 `config/experiment_brief.md` 已按主题填写。若 schema 过期：
+工作区 `config/experiment_brief.md` 已按主题填写；如需联网取全文，确认**本技能目录 `.env`**
+里已填所需密钥（`UNPAYWALL_EMAIL` 等）。若 schema 过期：
 ```bash
 python <ASSETS>/scripts/export_tools.py          # 重新生成
 python <ASSETS>/scripts/export_tools.py --check  # 校验是否最新
@@ -237,4 +262,6 @@ python <ASSETS>/scripts/export_tools.py --check  # 校验是否最新
 ## 注意
 
 - 产物一律留在工作区；不要把运行目录 `Set-Location` 到安装目录。
+- `tmp/` 是可再生的中间载荷目录；积累过多时用 `mine2digest clean`（默认只删内置载荷 glob，
+  保留 `*.py`/说明文本等；`--dry-run` 先预览，`--all` 清空整个 `tmp/`）。
 - 修改本 skill 或 `.opencode` 下任何文件后，需**重启 opencode** 才会生效。

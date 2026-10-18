@@ -20,6 +20,10 @@ from typing import Any
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "src"))
 
+from mine2digest import common  # noqa: E402
+
+common.load_env_file()  # 自动加载 skill 目录 .env（S2_API_KEY）
+
 INTENTS_KEEP = {"methodology", "result"}
 BASE_URL = "https://api.semanticscholar.org/graph/v1/paper"
 FIELDS = "paperId,title,abstract,year,venue,externalIds,isInfluential,intents,contexts"

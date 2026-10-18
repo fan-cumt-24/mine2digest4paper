@@ -33,6 +33,8 @@ def resolve_budget(labels: dict, kind: str) -> tuple[int, int]:
     thresholds = labels.get("thresholds", {})
     if kind == "caveat":
         return int(thresholds.get("caveat_top_k", 6)), int(thresholds.get("caveat_char_budget", 8000))
+    if kind == "figure":
+        return int(thresholds.get("figure_top_k", 8)), int(thresholds.get("figure_char_budget", 8000))
     return int(thresholds.get("reader_top_k", 8)), int(thresholds.get("reader_char_budget", 12000))
 
 

@@ -23,6 +23,8 @@ sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "src"))
 
 from mine2digest import common  # noqa: E402
 
+common.load_env_file()  # 自动加载 skill 目录 .env（OPENALEX_API_KEY 等）
+
 API_URL = "https://api.openalex.org/works"
 
 

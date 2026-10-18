@@ -30,6 +30,14 @@ import sys
 import tempfile
 from pathlib import Path
 
+REPO = Path(__file__).resolve().parents[1]
+if str(REPO / "src") not in sys.path:
+    sys.path.insert(0, str(REPO / "src"))
+
+from mine2digest import common  # noqa: E402
+
+common.load_env_file()  # 自动加载 skill 目录 .env（后端/模型等）
+
 DEFAULT_MODEL = "opencode/deepseek-v4.1-flash-free"
 INSTRUCTION = (
     "Follow the attached prompt exactly. Do not use any tools; just read the attachment and answer. "

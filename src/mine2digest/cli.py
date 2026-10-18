@@ -22,15 +22,18 @@ from .commands import (
     a_screen,
     b_audit,
     b_read,
+    c_clean,
     c_draft,
     c_figures,
     c_query,
     c_templates,
 )
 
+common.load_env_file()  # 密钥固化在 skill 目录 .env，启动时自动加载（非覆盖）
+
 app = typer.Typer(add_completion=False, no_args_is_help=True, help="mine2digest CLI")
 templates_app = typer.Typer(no_args_is_help=True, help="C1 结构模板抽取")
-figures_app = typer.Typer(no_args_is_help=True, help="C3 图表生成（PaperBanana 包装）")
+figures_app = typer.Typer(no_args_is_help=True, help="C3 图表设计建议（读优秀论文图表语料）")
 app.add_typer(templates_app, name="templates")
 app.add_typer(figures_app, name="figures")
 
@@ -335,19 +338,73 @@ def templates_extract(
     _run("templates extract", {"section": section}, lambda: c_templates.extract_templates(section))
 
 
-@figures_app.command("generate")
-def figures_generate(
-    input_file: str = typer.Option(..., "--input", help="方法/图表描述文本文件"),
-    caption: str = typer.Option(..., "--caption", help="图注"),
-    fig_id: Optional[str] = typer.Option(None, "--fig-id", help="图 id（默认由输入文件名推导）"),
-    out: Optional[str] = typer.Option(None, "--out", help="输出目录（默认 outputs/figures）"),
+@figures_app.command("extract")
+def figures_extract(
+    paper_id: Optional[List[str]] = typer.Option(None, "--paper-id", help="限定论文，可多次"),
+    kind: str = typer.Option("both", "--kind", help="figure|table|both"),
+    limit: Optional[int] = typer.Option(None, "--limit", help="最多抽取条数"),
+    render: bool = typer.Option(
+        False, "--render", help="把图注所在页渲染成 PNG，供支持视觉的模型读图"
+    ),
+    dpi: int = typer.Option(150, "--dpi", help="渲染 DPI（配合 --render）"),
+    out: Optional[str] = typer.Option(None, "--out", help="语料输出路径（默认 outputs/figure_corpus.json）"),
 ) -> None:
-    """包装 PaperBanana 生成图，产物规范化为 {fig_id}.png/.src.py/.manifest.json。"""
+    """抽取已归档论文的图注/表注 + 引用上下文 -> figure_corpus.json。"""
     _run(
-        "figures generate",
-        {"input": input_file, "caption": caption, "fig_id": fig_id},
-        lambda: c_figures.generate_figure(input_file, caption, fig_id, out),
+        "figures extract",
+        {"paper_id": paper_id, "kind": kind, "limit": limit, "render": render, "dpi": dpi},
+        lambda: c_figures.extract_figures(paper_id, kind, limit, render, dpi, out),
     )
+
+
+@figures_app.command("suggest")
+def figures_suggest(
+    input_file: str = typer.Option(..., "--input", help="你自己的图表意图/描述文本文件"),
+    section: Optional[str] = typer.Option(None, "--section", help="目标节（labels.target_sections 之一）"),
+    kind: Optional[str] = typer.Option(None, "--kind", help="只参考 figure 或 table"),
+    fig_id: Optional[str] = typer.Option(None, "--fig-id", help="图 id（默认由输入文件名推导）"),
+    top_k: Optional[int] = typer.Option(None, "--top-k", help="参考图条数（覆盖 labels）"),
+    char_budget: Optional[int] = typer.Option(None, "--char-budget", help="参考语料字符预算"),
+    out_dir: Optional[str] = typer.Option(None, "--out-dir", help="输出目录（缺省 outputs/figures）"),
+    polish: bool = typer.Option(False, "--polish", help="调用外部命令把 prompt 打磨成成稿"),
+    polish_cmd: Optional[str] = typer.Option(
+        None, "--polish-cmd", help="覆盖 MINE2DIGEST_FIGURE_CMD"
+    ),
+) -> None:
+    """据图表语料产出设计建议骨架 + 打磨 prompt（可选 --polish 直出成稿）。"""
+    _run(
+        "figures suggest",
+        {
+            "input": input_file,
+            "section": section,
+            "kind": kind,
+            "fig_id": fig_id,
+            "top_k": top_k,
+            "char_budget": char_budget,
+            "out_dir": out_dir,
+            "polish": polish,
+            "polish_cmd": polish_cmd,
+        },
+        lambda: c_figures.suggest_figures(
+            input_file, section, kind, fig_id, top_k, char_budget, out_dir, polish, polish_cmd
+        ),
+    )
+
+
+@figures_app.command("add-notes")
+def figures_add_notes(
+    file: Optional[str] = typer.Option(None, "--file", help="FigureNote JSON（缺省读 stdin）"),
+) -> None:
+    """写入视觉模型读图得到的设计观察（FigureNote）到 design_notes.json。"""
+    _run("figures add-notes", {"file": file}, lambda: c_figures.add_notes(file))
+
+
+@figures_app.command("verify")
+def figures_verify(
+    file: str = typer.Option(..., "--file", help="待校验的设计建议 Markdown"),
+) -> None:
+    """校验建议里的 [fig:<ref>] 是否都能在语料/观察中找到。"""
+    _run("figures verify", {"file": file}, lambda: c_figures.verify_figures(file))
 
 
 @app.command("draft")
@@ -387,6 +444,25 @@ def verify(
         "verify",
         {"file": file, "require_refs": require_refs, "recheck": recheck},
         lambda: c_draft.verify(file, require_refs, recheck),
+    )
+
+
+@app.command("clean")
+def clean(
+    pattern: Optional[List[str]] = typer.Option(
+        None, "--pattern", help="自定义 glob（可多次）；缺省用内置临时载荷集合"
+    ),
+    all_files: bool = typer.Option(False, "--all", help="清空整个 tmp/（含脚本等非载荷文件）"),
+    older_than: Optional[float] = typer.Option(
+        None, "--older-than", help="只删早于 N 小时的文件"
+    ),
+    dry_run: bool = typer.Option(False, "--dry-run", help="只列出将删除的文件，不实际删除"),
+) -> None:
+    """清理工作区 tmp/ 的临时载荷（默认仅删可再生的中间文件，保留未知文件）。"""
+    _run(
+        "clean",
+        {"pattern": pattern, "all": all_files, "older_than": older_than, "dry_run": dry_run},
+        lambda: c_clean.clean(pattern, all_files, older_than, dry_run),
     )
 
 

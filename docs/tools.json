@@ -315,6 +315,50 @@
       }
     },
     {
+      "name": "clean",
+      "description": "清理工作区 tmp/ 的临时载荷（默认仅删可再生的中间文件，保留未知文件）。",
+      "status": "ready",
+      "executor": {
+        "type": "cli",
+        "command": [
+          "mine2digest",
+          "clean"
+        ]
+      },
+      "parameters": {
+        "type": "object",
+        "properties": {
+          "pattern": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "description": "自定义 glob（可多次）；缺省用内置临时载荷集合",
+            "argument": "--pattern"
+          },
+          "all_files": {
+            "type": "boolean",
+            "description": "清空整个 tmp/（含脚本等非载荷文件）",
+            "argument": "--all",
+            "default": false
+          },
+          "older_than": {
+            "type": "number",
+            "description": "只删早于 N 小时的文件",
+            "argument": "--older-than"
+          },
+          "dry_run": {
+            "type": "boolean",
+            "description": "只列出将删除的文件，不实际删除",
+            "argument": "--dry-run",
+            "default": false
+          }
+        },
+        "required": [],
+        "additionalProperties": false
+      }
+    },
+    {
       "name": "coverage",
       "description": "覆盖矩阵（section × type），空格标 reclaimable。",
       "status": "ready",
@@ -414,15 +458,189 @@
       }
     },
     {
-      "name": "figures generate",
-      "description": "包装 PaperBanana 生成图，产物规范化为 {fig_id}.png/.src.py/.manifest.json。",
+      "name": "figures add-notes",
+      "description": "写入视觉模型读图得到的设计观察（FigureNote）到 design_notes.json。",
       "status": "ready",
       "executor": {
         "type": "cli",
         "command": [
           "mine2digest",
           "figures",
-          "generate"
+          "add-notes"
+        ]
+      },
+      "parameters": {
+        "type": "object",
+        "properties": {
+          "file": {
+            "type": "string",
+            "description": "FigureNote JSON（缺省读 stdin）",
+            "argument": "--file"
+          }
+        },
+        "required": [],
+        "additionalProperties": false
+      },
+      "stdin": {
+        "model": "FigureNoteFile",
+        "schema": {
+          "$defs": {
+            "FigureNote": {
+              "additionalProperties": false,
+              "description": "视觉模型读图后对某张参考图/表的**设计观察**（`figures add-notes` 校验）。",
+              "properties": {
+                "ref": {
+                  "title": "Ref",
+                  "type": "string"
+                },
+                "layout_type": {
+                  "default": "",
+                  "title": "Layout Type",
+                  "type": "string"
+                },
+                "panels": {
+                  "items": {
+                    "type": "string"
+                  },
+                  "title": "Panels",
+                  "type": "array"
+                },
+                "encodings": {
+                  "items": {
+                    "type": "string"
+                  },
+                  "title": "Encodings",
+                  "type": "array"
+                },
+                "strengths": {
+                  "items": {
+                    "type": "string"
+                  },
+                  "title": "Strengths",
+                  "type": "array"
+                },
+                "applicable_to": {
+                  "items": {
+                    "type": "string"
+                  },
+                  "title": "Applicable To",
+                  "type": "array"
+                },
+                "note": {
+                  "anyOf": [
+                    {
+                      "type": "string"
+                    },
+                    {
+                      "type": "null"
+                    }
+                  ],
+                  "default": null,
+                  "title": "Note"
+                },
+                "confidence": {
+                  "anyOf": [
+                    {
+                      "maximum": 1.0,
+                      "minimum": 0.0,
+                      "type": "number"
+                    },
+                    {
+                      "type": "null"
+                    }
+                  ],
+                  "default": null,
+                  "title": "Confidence"
+                }
+              },
+              "required": [
+                "ref"
+              ],
+              "title": "FigureNote",
+              "type": "object"
+            }
+          },
+          "additionalProperties": false,
+          "properties": {
+            "notes": {
+              "items": {
+                "$ref": "#/$defs/FigureNote"
+              },
+              "title": "Notes",
+              "type": "array"
+            }
+          },
+          "title": "FigureNoteFile",
+          "type": "object"
+        }
+      }
+    },
+    {
+      "name": "figures extract",
+      "description": "抽取已归档论文的图注/表注 + 引用上下文 -> figure_corpus.json。",
+      "status": "ready",
+      "executor": {
+        "type": "cli",
+        "command": [
+          "mine2digest",
+          "figures",
+          "extract"
+        ]
+      },
+      "parameters": {
+        "type": "object",
+        "properties": {
+          "paper_id": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "description": "限定论文，可多次",
+            "argument": "--paper-id"
+          },
+          "kind": {
+            "type": "string",
+            "description": "figure|table|both",
+            "argument": "--kind",
+            "default": "both"
+          },
+          "limit": {
+            "type": "integer",
+            "description": "最多抽取条数",
+            "argument": "--limit"
+          },
+          "render": {
+            "type": "boolean",
+            "description": "把图注所在页渲染成 PNG，供支持视觉的模型读图",
+            "argument": "--render",
+            "default": false
+          },
+          "dpi": {
+            "type": "integer",
+            "description": "渲染 DPI（配合 --render）",
+            "argument": "--dpi",
+            "default": 150
+          },
+          "out": {
+            "type": "string",
+            "description": "语料输出路径（默认 outputs/figure_corpus.json）",
+            "argument": "--out"
+          }
+        },
+        "required": [],
+        "additionalProperties": false
+      }
+    },
+    {
+      "name": "figures suggest",
+      "description": "据图表语料产出设计建议骨架 + 打磨 prompt（可选 --polish 直出成稿）。",
+      "status": "ready",
+      "executor": {
+        "type": "cli",
+        "command": [
+          "mine2digest",
+          "figures",
+          "suggest"
         ]
       },
       "parameters": {
@@ -430,28 +648,80 @@
         "properties": {
           "input_file": {
             "type": "string",
-            "description": "方法/图表描述文本文件",
+            "description": "你自己的图表意图/描述文本文件",
             "argument": "--input"
           },
-          "caption": {
+          "section": {
             "type": "string",
-            "description": "图注",
-            "argument": "--caption"
+            "description": "目标节（labels.target_sections 之一）",
+            "argument": "--section"
+          },
+          "kind": {
+            "type": "string",
+            "description": "只参考 figure 或 table",
+            "argument": "--kind"
           },
           "fig_id": {
             "type": "string",
             "description": "图 id（默认由输入文件名推导）",
             "argument": "--fig-id"
           },
-          "out": {
+          "top_k": {
+            "type": "integer",
+            "description": "参考图条数（覆盖 labels）",
+            "argument": "--top-k"
+          },
+          "char_budget": {
+            "type": "integer",
+            "description": "参考语料字符预算",
+            "argument": "--char-budget"
+          },
+          "out_dir": {
             "type": "string",
-            "description": "输出目录（默认 outputs/figures）",
-            "argument": "--out"
+            "description": "输出目录（缺省 outputs/figures）",
+            "argument": "--out-dir"
+          },
+          "polish": {
+            "type": "boolean",
+            "description": "调用外部命令把 prompt 打磨成成稿",
+            "argument": "--polish",
+            "default": false
+          },
+          "polish_cmd": {
+            "type": "string",
+            "description": "覆盖 MINE2DIGEST_FIGURE_CMD",
+            "argument": "--polish-cmd"
           }
         },
         "required": [
-          "input_file",
-          "caption"
+          "input_file"
+        ],
+        "additionalProperties": false
+      }
+    },
+    {
+      "name": "figures verify",
+      "description": "校验建议里的 [fig:<ref>] 是否都能在语料/观察中找到。",
+      "status": "ready",
+      "executor": {
+        "type": "cli",
+        "command": [
+          "mine2digest",
+          "figures",
+          "verify"
+        ]
+      },
+      "parameters": {
+        "type": "object",
+        "properties": {
+          "file": {
+            "type": "string",
+            "description": "待校验的设计建议 Markdown",
+            "argument": "--file"
+          }
+        },
+        "required": [
+          "file"
         ],
         "additionalProperties": false
       }

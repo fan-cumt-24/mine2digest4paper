@@ -31,6 +31,7 @@ STDIN_SCHEMAS = {
     "add-card": ("CardFile", "mine2digest.models", "CardFile"),
     "add-caveat": ("Caveat", "mine2digest.models", "Caveat"),
     "submit-audit": ("AuditFile", "mine2digest.models", "AuditFile"),
+    "figures add-notes": ("FigureNoteFile", "mine2digest.models", "FigureNoteFile"),
 }
 
 JSONL_STDIN = {

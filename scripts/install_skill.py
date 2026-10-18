@@ -19,6 +19,7 @@ from pathlib import Path
 
 REPO = Path(__file__).resolve().parents[1]
 CANONICAL = REPO / ".opencode" / "skills" / "mine2digest" / "SKILL.md"
+ENV_EXAMPLE = CANONICAL.parent / ".env.example"
 DEFAULT_DEST = Path.home() / ".config" / "opencode" / "skills" / "mine2digest" / "SKILL.md"
 
 
@@ -42,6 +43,8 @@ def render(repo_root: Path | None = None) -> str:
         "产物（db/papers/exports/drafts/outputs/logs）全部留在工作区。\n"
         "> 只读资产取 `<ASSETS>/...`（`config/labels.yaml`、`config/*_prompts/`、"
         "`docs/tools.json`、`scripts/`）；绝不把产物写进 ASSETS。\n"
+        "> **密钥/配置固化在本技能目录的 `.env`**（与 SKILL.md 同目录），CLI/脚本启动时自动加载；"
+        "不要放进工作区。\n"
     )
     return (frontmatter + header + body).rstrip() + "\n"
 
@@ -75,8 +78,23 @@ def main(argv: list[str] | None = None) -> int:
 
     dest.parent.mkdir(parents=True, exist_ok=True)
     dest.write_text(text, encoding="utf-8")
+    _install_env(dest.parent)
     sys.stdout.write(f"installed {dest}\n")
     return 0
+
+
+def _install_env(skill_dir: Path) -> None:
+    """把 `.env.example` 放到技能目录，并在缺失时创建空 `.env`（不覆盖已有密钥）。"""
+    if ENV_EXAMPLE.exists():
+        target_example = skill_dir / ".env.example"
+        target_example.write_text(ENV_EXAMPLE.read_text(encoding="utf-8"), encoding="utf-8")
+    env_file = skill_dir / ".env"
+    if not env_file.exists():
+        env_file.write_text(
+            "# mine2digest 密钥/配置；与 SKILL.md 同目录，CLI 自动加载。\n"
+            "OPENALEX_API_KEY=\nS2_API_KEY=\nUNPAYWALL_EMAIL=\n",
+            encoding="utf-8",
+        )
 
 
 if __name__ == "__main__":

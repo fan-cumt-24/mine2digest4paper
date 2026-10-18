@@ -87,3 +87,24 @@ class AuditFile(BaseModel):
     model_config = ConfigDict(extra="forbid")
 
     results: List[AuditResult] = Field(default_factory=list)
+
+
+class FigureNote(BaseModel):
+    """视觉模型读图后对某张参考图/表的**设计观察**（`figures add-notes` 校验）。"""
+
+    model_config = ConfigDict(extra="forbid")
+
+    ref: str  # "{paper_id}#Figure 3"，必须存在于 figure_corpus.json
+    layout_type: str = ""
+    panels: List[str] = Field(default_factory=list)
+    encodings: List[str] = Field(default_factory=list)
+    strengths: List[str] = Field(default_factory=list)
+    applicable_to: List[str] = Field(default_factory=list)
+    note: str | None = None
+    confidence: float | None = Field(default=None, ge=0.0, le=1.0)
+
+
+class FigureNoteFile(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+
+    notes: List[FigureNote] = Field(default_factory=list)

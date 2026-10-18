@@ -64,7 +64,7 @@ def test_references_tools_schema_and_env():
     body = CANONICAL.read_text(encoding="utf-8")
     assert "docs/tools.json" in body
     assert "scripts/export_tools.py" in body
-    assert "config/.env" in body
+    assert ".opencode/skills/mine2digest/.env" in body
     assert "UNPAYWALL_EMAIL" in body
 
 
