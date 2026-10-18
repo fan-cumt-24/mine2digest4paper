@@ -1,0 +1,15 @@
+{
+  "cards": [
+    {
+      "paper_id": "W4407999861",
+      "use_type": "method_borrow",
+      "target_section": "method",
+      "claim": "该文提出可为不同图像动态选择离散压缩率的特征压缩方法，并用Gumbel Softmax实现压缩率的可导采样与端到端训练，可作为方法设计中动态视觉特征压缩的借鉴。",
+      "source_span": "为了在训练中能可导且动态地选择压缩率，引\n入了一个可学习的参数，代表每个压缩率的选择概\n率，具体为\np = {p1, p2,⋅⋅⋅, pn}\n（6）\n式中， pi是第i个压缩率的选择概率。\n由于Gumbel Softmax（Jang 等，2016）的可导性，\n整个采样过程可以直接嵌入到梯度下降的训练框架\n中，并且由于它是根据概率采样，在训练过程中也可\n能会采样到一些小概率压缩率，在一定程度上起到\n数据增强的作用。",
+      "evidence_locator": "p.5",
+      "method_snippet": "r = L × Ci, i = fGumbelSoftmax ( p)\n（7）\n式中，L是输入特征长度，r为压缩后的特征长度。",
+      "caveat": null,
+      "confidence": 0.96
+    }
+  ]
+}

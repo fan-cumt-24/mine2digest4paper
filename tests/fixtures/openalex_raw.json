@@ -1,0 +1,19 @@
+{
+  "results": [
+    {
+      "id": "https://openalex.org/W2741809807",
+      "doi": "https://doi.org/10.7717/peerj.4375",
+      "title": "The state of OA",
+      "publication_year": 2018,
+      "primary_location": { "source": { "display_name": "PeerJ" } },
+      "abstract_inverted_index": { "We": [0], "study": [1], "open": [2], "access": [3] }
+    },
+    {
+      "id": "https://openalex.org/W999",
+      "doi": null,
+      "title": "No abstract paper",
+      "publication_year": 2021,
+      "primary_location": { "source": { "display_name": "ArXiv" } }
+    }
+  ]
+}

@@ -1,0 +1,1127 @@
+{
+  "_generated_by": "scripts/export_tools.py",
+  "_note": "Do not edit by hand. Regenerate with: python scripts/export_tools.py",
+  "contract": {
+    "invocation": "mine2digest <name> [flags]",
+    "stdin": "JSON payload when --file is omitted (see tool.stdin)",
+    "stdout": "single JSON object",
+    "success": {
+      "ok": true
+    },
+    "failure": {
+      "ok": false,
+      "reason": "<string>"
+    },
+    "exit_codes": {
+      "0": "ok",
+      "1": "failure"
+    }
+  },
+  "tools": [
+    {
+      "name": "add-candidates",
+      "description": "批量插入候选论文（JSONL），跨源去重，已存在只更新 updated_at。",
+      "status": "ready",
+      "executor": {
+        "type": "cli",
+        "command": [
+          "mine2digest",
+          "add-candidates"
+        ]
+      },
+      "parameters": {
+        "type": "object",
+        "properties": {
+          "file": {
+            "type": "string",
+            "description": "规范化候选 JSONL（缺省读 stdin）",
+            "argument": "--file"
+          },
+          "source": {
+            "type": "string",
+            "description": "批次来源标识",
+            "argument": "--source"
+          }
+        },
+        "required": [],
+        "additionalProperties": false
+      },
+      "stdin": {
+        "format": "jsonl",
+        "description": "每行一个候选对象，至少含 title；可选 doi/openalex_id/arxiv_id/s2_id/year/venue/source/abstract。"
+      }
+    },
+    {
+      "name": "add-card",
+      "description": "事务内逐条插入证据卡 + 同步 locator 校验；任一失败整批回滚。",
+      "status": "ready",
+      "executor": {
+        "type": "cli",
+        "command": [
+          "mine2digest",
+          "add-card"
+        ]
+      },
+      "parameters": {
+        "type": "object",
+        "properties": {
+          "file": {
+            "type": "string",
+            "description": "证据卡 JSON（缺省读 stdin）",
+            "argument": "--file"
+          }
+        },
+        "required": [],
+        "additionalProperties": false
+      },
+      "stdin": {
+        "model": "CardFile",
+        "schema": {
+          "$defs": {
+            "Card": {
+              "additionalProperties": false,
+              "properties": {
+                "paper_id": {
+                  "title": "Paper Id",
+                  "type": "string"
+                },
+                "use_type": {
+                  "title": "Use Type",
+                  "type": "string"
+                },
+                "target_section": {
+                  "title": "Target Section",
+                  "type": "string"
+                },
+                "claim": {
+                  "title": "Claim",
+                  "type": "string"
+                },
+                "source_span": {
+                  "title": "Source Span",
+                  "type": "string"
+                },
+                "evidence_locator": {
+                  "default": "",
+                  "title": "Evidence Locator",
+                  "type": "string"
+                },
+                "method_snippet": {
+                  "anyOf": [
+                    {
+                      "type": "string"
+                    },
+                    {
+                      "type": "null"
+                    }
+                  ],
+                  "default": null,
+                  "title": "Method Snippet"
+                },
+                "caveat": {
+                  "anyOf": [
+                    {
+                      "type": "string"
+                    },
+                    {
+                      "type": "null"
+                    }
+                  ],
+                  "default": null,
+                  "title": "Caveat"
+                },
+                "confidence": {
+                  "anyOf": [
+                    {
+                      "maximum": 1.0,
+                      "minimum": 0.0,
+                      "type": "number"
+                    },
+                    {
+                      "type": "null"
+                    }
+                  ],
+                  "default": null,
+                  "title": "Confidence"
+                },
+                "stage": {
+                  "default": "fulltext_confirmed",
+                  "title": "Stage",
+                  "type": "string"
+                },
+                "original_prediction": {
+                  "anyOf": [
+                    {
+                      "additionalProperties": true,
+                      "type": "object"
+                    },
+                    {
+                      "type": "null"
+                    }
+                  ],
+                  "default": null,
+                  "title": "Original Prediction"
+                },
+                "card_id": {
+                  "anyOf": [
+                    {
+                      "type": "string"
+                    },
+                    {
+                      "type": "null"
+                    }
+                  ],
+                  "default": null,
+                  "title": "Card Id"
+                }
+              },
+              "required": [
+                "paper_id",
+                "use_type",
+                "target_section",
+                "claim",
+                "source_span"
+              ],
+              "title": "Card",
+              "type": "object"
+            }
+          },
+          "additionalProperties": false,
+          "properties": {
+            "cards": {
+              "items": {
+                "$ref": "#/$defs/Card"
+              },
+              "title": "Cards",
+              "type": "array"
+            }
+          },
+          "title": "CardFile",
+          "type": "object"
+        }
+      }
+    },
+    {
+      "name": "add-caveat",
+      "description": "把反证结果绑定到具体证据卡。",
+      "status": "ready",
+      "executor": {
+        "type": "cli",
+        "command": [
+          "mine2digest",
+          "add-caveat"
+        ]
+      },
+      "parameters": {
+        "type": "object",
+        "properties": {
+          "card_id": {
+            "type": "string",
+            "argument": "--card-id"
+          },
+          "file": {
+            "type": "string",
+            "description": "caveat JSON（缺省读 stdin）",
+            "argument": "--file"
+          }
+        },
+        "required": [
+          "card_id"
+        ],
+        "additionalProperties": false
+      },
+      "stdin": {
+        "model": "Caveat",
+        "schema": {
+          "additionalProperties": false,
+          "properties": {
+            "caveat": {
+              "title": "Caveat",
+              "type": "string"
+            },
+            "confidence": {
+              "anyOf": [
+                {
+                  "maximum": 1.0,
+                  "minimum": 0.0,
+                  "type": "number"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "default": null,
+              "title": "Confidence"
+            }
+          },
+          "required": [
+            "caveat"
+          ],
+          "title": "Caveat",
+          "type": "object"
+        }
+      }
+    },
+    {
+      "name": "add-relations",
+      "description": "批量写入引用边（INSERT OR REPLACE）。",
+      "status": "ready",
+      "executor": {
+        "type": "cli",
+        "command": [
+          "mine2digest",
+          "add-relations"
+        ]
+      },
+      "parameters": {
+        "type": "object",
+        "properties": {
+          "file": {
+            "type": "string",
+            "description": "引用边 JSONL（缺省读 stdin）",
+            "argument": "--file"
+          }
+        },
+        "required": [],
+        "additionalProperties": false
+      },
+      "stdin": {
+        "format": "jsonl",
+        "description": "每行一条引用边，必含 src_id/dst_id/relation；可选 is_influential/contexts。"
+      }
+    },
+    {
+      "name": "audit",
+      "description": "随机抽样 fulltext_confirmed 卡，写 audit_samples。",
+      "status": "ready",
+      "executor": {
+        "type": "cli",
+        "command": [
+          "mine2digest",
+          "audit"
+        ]
+      },
+      "parameters": {
+        "type": "object",
+        "properties": {
+          "rate": {
+            "type": "number",
+            "description": "抽样比例（缺省取 labels）",
+            "argument": "--rate"
+          }
+        },
+        "required": [],
+        "additionalProperties": false
+      }
+    },
+    {
+      "name": "coverage",
+      "description": "覆盖矩阵（section × type），空格标 reclaimable。",
+      "status": "ready",
+      "executor": {
+        "type": "cli",
+        "command": [
+          "mine2digest",
+          "coverage"
+        ]
+      },
+      "parameters": {
+        "type": "object",
+        "properties": {
+          "section": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "description": "限定节，可多次",
+            "argument": "--section"
+          }
+        },
+        "required": [],
+        "additionalProperties": false
+      }
+    },
+    {
+      "name": "draft",
+      "description": "读结构模板 + 覆盖矩阵 + 证据卡，生成证据绑定草稿与打磨 prompt。",
+      "status": "ready",
+      "executor": {
+        "type": "cli",
+        "command": [
+          "mine2digest",
+          "draft"
+        ]
+      },
+      "parameters": {
+        "type": "object",
+        "properties": {
+          "section": {
+            "type": "string",
+            "description": "目标节（labels.target_sections 之一）",
+            "argument": "--section"
+          },
+          "min_confidence": {
+            "type": "number",
+            "description": "证据卡最低置信度",
+            "argument": "--min-confidence",
+            "default": 0.0
+          },
+          "out_dir": {
+            "type": "string",
+            "description": "草稿输出目录（缺省 <ws>/drafts）",
+            "argument": "--out-dir"
+          },
+          "polish": {
+            "type": "boolean",
+            "description": "调用外部命令把 prompt 打磨成成稿",
+            "argument": "--polish",
+            "default": false
+          },
+          "polish_cmd": {
+            "type": "string",
+            "description": "覆盖 MINE2DIGEST_DRAFT_CMD",
+            "argument": "--polish-cmd"
+          }
+        },
+        "required": [
+          "section"
+        ],
+        "additionalProperties": false
+      }
+    },
+    {
+      "name": "export",
+      "description": "从 DB 导出只读视图到 exports/。",
+      "status": "ready",
+      "executor": {
+        "type": "cli",
+        "command": [
+          "mine2digest",
+          "export"
+        ]
+      },
+      "parameters": {
+        "type": "object",
+        "properties": {
+          "view": {
+            "type": "string",
+            "description": "单个视图名；缺省导出全部",
+            "argument": "--view"
+          }
+        },
+        "required": [],
+        "additionalProperties": false
+      }
+    },
+    {
+      "name": "figures generate",
+      "description": "包装 PaperBanana 生成图，产物规范化为 {fig_id}.png/.src.py/.manifest.json。",
+      "status": "ready",
+      "executor": {
+        "type": "cli",
+        "command": [
+          "mine2digest",
+          "figures",
+          "generate"
+        ]
+      },
+      "parameters": {
+        "type": "object",
+        "properties": {
+          "input_file": {
+            "type": "string",
+            "description": "方法/图表描述文本文件",
+            "argument": "--input"
+          },
+          "caption": {
+            "type": "string",
+            "description": "图注",
+            "argument": "--caption"
+          },
+          "fig_id": {
+            "type": "string",
+            "description": "图 id（默认由输入文件名推导）",
+            "argument": "--fig-id"
+          },
+          "out": {
+            "type": "string",
+            "description": "输出目录（默认 outputs/figures）",
+            "argument": "--out"
+          }
+        },
+        "required": [
+          "input_file",
+          "caption"
+        ],
+        "additionalProperties": false
+      }
+    },
+    {
+      "name": "ingest-manual",
+      "description": "把 inbox 中的人工投放 PDF 归档并置为 fetched。",
+      "status": "ready",
+      "executor": {
+        "type": "cli",
+        "command": [
+          "mine2digest",
+          "ingest-manual"
+        ]
+      },
+      "parameters": {
+        "type": "object",
+        "properties": {
+          "file": {
+            "type": "string",
+            "description": "inbox 中的 PDF 路径",
+            "argument": "--file"
+          },
+          "doi": {
+            "type": "string",
+            "argument": "--doi"
+          },
+          "title": {
+            "type": "string",
+            "argument": "--title"
+          },
+          "version": {
+            "type": "string",
+            "argument": "--version",
+            "default": "preprint"
+          },
+          "slug": {
+            "type": "string",
+            "description": "自定义 papers 子目录名",
+            "argument": "--slug"
+          }
+        },
+        "required": [
+          "file"
+        ],
+        "additionalProperties": false
+      }
+    },
+    {
+      "name": "init",
+      "description": "初始化工作区与数据库（幂等）：建目录骨架、写标记、拷贝 brief 模板、建 DB。",
+      "status": "ready",
+      "executor": {
+        "type": "cli",
+        "command": [
+          "mine2digest",
+          "init"
+        ]
+      },
+      "parameters": {
+        "type": "object",
+        "properties": {
+          "workspace": {
+            "type": "string",
+            "description": "工作区目录（缺省: env 或 <cwd>/m2d）",
+            "argument": "--workspace"
+          }
+        },
+        "required": [],
+        "additionalProperties": false
+      }
+    },
+    {
+      "name": "lookup",
+      "description": "单篇全信息回溯（含被丢弃/驳回的用途）。",
+      "status": "ready",
+      "executor": {
+        "type": "cli",
+        "command": [
+          "mine2digest",
+          "lookup"
+        ]
+      },
+      "parameters": {
+        "type": "object",
+        "properties": {
+          "paper_id": {
+            "type": "string",
+            "argument": "--paper-id"
+          }
+        },
+        "required": [
+          "paper_id"
+        ],
+        "additionalProperties": false
+      }
+    },
+    {
+      "name": "next-candidates",
+      "description": "取未被该 agent 投票的候选论文（带 citation_contexts）。",
+      "status": "ready",
+      "executor": {
+        "type": "cli",
+        "command": [
+          "mine2digest",
+          "next-candidates"
+        ]
+      },
+      "parameters": {
+        "type": "object",
+        "properties": {
+          "agent_id": {
+            "type": "string",
+            "description": "投票 agent 标识",
+            "argument": "--agent-id"
+          },
+          "limit": {
+            "type": "integer",
+            "description": "最多返回条数",
+            "argument": "--limit",
+            "default": 50
+          }
+        },
+        "required": [
+          "agent_id"
+        ],
+        "additionalProperties": false
+      }
+    },
+    {
+      "name": "next-caveat",
+      "description": "取 caveat IS NULL 且 fulltext_confirmed 的卡（带页文本）。",
+      "status": "ready",
+      "executor": {
+        "type": "cli",
+        "command": [
+          "mine2digest",
+          "next-caveat"
+        ]
+      },
+      "parameters": {
+        "type": "object",
+        "properties": {
+          "limit": {
+            "type": "integer",
+            "argument": "--limit",
+            "default": 5
+          }
+        },
+        "required": [],
+        "additionalProperties": false
+      }
+    },
+    {
+      "name": "next-fetch",
+      "description": "原子认领 fetch_queue 中的论文（status=queued -> fetching）。",
+      "status": "ready",
+      "executor": {
+        "type": "cli",
+        "command": [
+          "mine2digest",
+          "next-fetch"
+        ]
+      },
+      "parameters": {
+        "type": "object",
+        "properties": {
+          "limit": {
+            "type": "integer",
+            "description": "最多认领条数",
+            "argument": "--limit",
+            "default": 10
+          },
+          "worker": {
+            "type": "string",
+            "description": "worker 标识",
+            "argument": "--worker"
+          }
+        },
+        "required": [],
+        "additionalProperties": false
+      }
+    },
+    {
+      "name": "next-reading",
+      "description": "取 status=fetched 的论文，带 merged_uses / disagreement / 预提取页文本。",
+      "status": "ready",
+      "executor": {
+        "type": "cli",
+        "command": [
+          "mine2digest",
+          "next-reading"
+        ]
+      },
+      "parameters": {
+        "type": "object",
+        "properties": {
+          "limit": {
+            "type": "integer",
+            "description": "最多返回条数",
+            "argument": "--limit",
+            "default": 5
+          }
+        },
+        "required": [],
+        "additionalProperties": false
+      }
+    },
+    {
+      "name": "query",
+      "description": "按 (section, type) 拉证据卡（带 caveat），按 source 可信度加权排序。",
+      "status": "ready",
+      "executor": {
+        "type": "cli",
+        "command": [
+          "mine2digest",
+          "query"
+        ]
+      },
+      "parameters": {
+        "type": "object",
+        "properties": {
+          "use_type": {
+            "type": "string",
+            "argument": "--type"
+          },
+          "section": {
+            "type": "string",
+            "argument": "--section"
+          },
+          "min_confidence": {
+            "type": "number",
+            "argument": "--min-confidence",
+            "default": 0.0
+          }
+        },
+        "required": [
+          "use_type",
+          "section"
+        ],
+        "additionalProperties": false
+      }
+    },
+    {
+      "name": "reject-card",
+      "description": "把证据卡置为 rejected。",
+      "status": "ready",
+      "executor": {
+        "type": "cli",
+        "command": [
+          "mine2digest",
+          "reject-card"
+        ]
+      },
+      "parameters": {
+        "type": "object",
+        "properties": {
+          "card_id": {
+            "type": "string",
+            "argument": "--card-id"
+          },
+          "reason": {
+            "type": "string",
+            "argument": "--reason"
+          }
+        },
+        "required": [
+          "card_id"
+        ],
+        "additionalProperties": false
+      }
+    },
+    {
+      "name": "report-fetch",
+      "description": "回填获取结果：成功归档 papers/，失败写 fetch_attempts。",
+      "status": "ready",
+      "executor": {
+        "type": "cli",
+        "command": [
+          "mine2digest",
+          "report-fetch"
+        ]
+      },
+      "parameters": {
+        "type": "object",
+        "properties": {
+          "paper_id": {
+            "type": "string",
+            "argument": "--paper-id"
+          },
+          "status": {
+            "type": "string",
+            "description": "success | failed",
+            "argument": "--status"
+          },
+          "path": {
+            "type": "string",
+            "description": "成功时的 PDF 路径",
+            "argument": "--path"
+          },
+          "source": {
+            "type": "string",
+            "description": "来源 fetcher 名",
+            "argument": "--source"
+          },
+          "error": {
+            "type": "string",
+            "description": "失败原因",
+            "argument": "--error"
+          },
+          "retry": {
+            "type": "boolean",
+            "description": "失败后清 claimed_at 允许重试",
+            "argument": "--retry",
+            "default": false
+          },
+          "version": {
+            "type": "string",
+            "description": "版本标签",
+            "argument": "--version",
+            "default": "preprint"
+          }
+        },
+        "required": [
+          "paper_id",
+          "status"
+        ],
+        "additionalProperties": false
+      }
+    },
+    {
+      "name": "revive",
+      "description": "复活赛：low_priority→queued（折扣入队）或 discarded→candidate（重筛）。",
+      "status": "ready",
+      "executor": {
+        "type": "cli",
+        "command": [
+          "mine2digest",
+          "revive"
+        ]
+      },
+      "parameters": {
+        "type": "object",
+        "properties": {
+          "use_type": {
+            "type": "string",
+            "argument": "--type"
+          },
+          "section": {
+            "type": "string",
+            "argument": "--section"
+          },
+          "gaps": {
+            "type": "boolean",
+            "description": "自动复活所有覆盖空格对应的 low_priority 论文",
+            "argument": "--gaps",
+            "default": false
+          },
+          "paper_id": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "description": "显式复活指定论文（discarded→candidate 重筛 / low_priority→queued）",
+            "argument": "--paper-id"
+          },
+          "limit": {
+            "type": "integer",
+            "argument": "--limit"
+          }
+        },
+        "required": [],
+        "additionalProperties": false
+      }
+    },
+    {
+      "name": "submit-audit",
+      "description": "回填审计结果并更新 source_reliability。",
+      "status": "ready",
+      "executor": {
+        "type": "cli",
+        "command": [
+          "mine2digest",
+          "submit-audit"
+        ]
+      },
+      "parameters": {
+        "type": "object",
+        "properties": {
+          "file": {
+            "type": "string",
+            "description": "审计结果 JSON（缺省读 stdin）",
+            "argument": "--file"
+          }
+        },
+        "required": [],
+        "additionalProperties": false
+      },
+      "stdin": {
+        "model": "AuditFile",
+        "schema": {
+          "$defs": {
+            "AuditResult": {
+              "additionalProperties": false,
+              "properties": {
+                "card_id": {
+                  "title": "Card Id",
+                  "type": "string"
+                },
+                "passes": {
+                  "title": "Passes",
+                  "type": "boolean"
+                },
+                "reason": {
+                  "anyOf": [
+                    {
+                      "type": "string"
+                    },
+                    {
+                      "type": "null"
+                    }
+                  ],
+                  "default": null,
+                  "title": "Reason"
+                }
+              },
+              "required": [
+                "card_id",
+                "passes"
+              ],
+              "title": "AuditResult",
+              "type": "object"
+            }
+          },
+          "additionalProperties": false,
+          "properties": {
+            "results": {
+              "items": {
+                "$ref": "#/$defs/AuditResult"
+              },
+              "title": "Results",
+              "type": "array"
+            }
+          },
+          "title": "AuditFile",
+          "type": "object"
+        }
+      }
+    },
+    {
+      "name": "submit-vote",
+      "description": "提交（或幂等覆盖）某 agent 对论文的用途投票。",
+      "status": "ready",
+      "executor": {
+        "type": "cli",
+        "command": [
+          "mine2digest",
+          "submit-vote"
+        ]
+      },
+      "parameters": {
+        "type": "object",
+        "properties": {
+          "agent_id": {
+            "type": "string",
+            "description": "投票 agent 标识",
+            "argument": "--agent-id"
+          },
+          "file": {
+            "type": "string",
+            "description": "投票 JSON 文件（缺省读 stdin）",
+            "argument": "--file"
+          }
+        },
+        "required": [
+          "agent_id"
+        ],
+        "additionalProperties": false
+      },
+      "stdin": {
+        "model": "VoteFile",
+        "schema": {
+          "$defs": {
+            "Use": {
+              "additionalProperties": false,
+              "properties": {
+                "type": {
+                  "title": "Type",
+                  "type": "string"
+                },
+                "target_section": {
+                  "title": "Target Section",
+                  "type": "string"
+                },
+                "anchor": {
+                  "default": "",
+                  "title": "Anchor",
+                  "type": "string"
+                },
+                "confidence": {
+                  "maximum": 1.0,
+                  "minimum": 0.0,
+                  "title": "Confidence",
+                  "type": "number"
+                }
+              },
+              "required": [
+                "type",
+                "target_section",
+                "confidence"
+              ],
+              "title": "Use",
+              "type": "object"
+            },
+            "Vote": {
+              "additionalProperties": false,
+              "properties": {
+                "paper_id": {
+                  "title": "Paper Id",
+                  "type": "string"
+                },
+                "topic_relevant": {
+                  "default": false,
+                  "title": "Topic Relevant",
+                  "type": "boolean"
+                },
+                "uses": {
+                  "items": {
+                    "$ref": "#/$defs/Use"
+                  },
+                  "title": "Uses",
+                  "type": "array"
+                }
+              },
+              "required": [
+                "paper_id"
+              ],
+              "title": "Vote",
+              "type": "object"
+            }
+          },
+          "additionalProperties": false,
+          "properties": {
+            "votes": {
+              "items": {
+                "$ref": "#/$defs/Vote"
+              },
+              "title": "Votes",
+              "type": "array"
+            }
+          },
+          "title": "VoteFile",
+          "type": "object"
+        }
+      }
+    },
+    {
+      "name": "tally-votes",
+      "description": "合并双 agent 投票，写 screening_merged / confirmed_uses / fetch_queue 并迁移状态。",
+      "status": "ready",
+      "executor": {
+        "type": "cli",
+        "command": [
+          "mine2digest",
+          "tally-votes"
+        ]
+      },
+      "parameters": {
+        "type": "object",
+        "properties": {
+          "limit": {
+            "type": "integer",
+            "description": "最多合并条数",
+            "argument": "--limit"
+          }
+        },
+        "required": [],
+        "additionalProperties": false
+      }
+    },
+    {
+      "name": "templates extract",
+      "description": "抽取结构模板：style_sample 已确认优先，不足时 venue 回退（provisional）。",
+      "status": "ready",
+      "executor": {
+        "type": "cli",
+        "command": [
+          "mine2digest",
+          "templates",
+          "extract"
+        ]
+      },
+      "parameters": {
+        "type": "object",
+        "properties": {
+          "section": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "description": "限定节，可多次",
+            "argument": "--section"
+          }
+        },
+        "required": [],
+        "additionalProperties": false
+      }
+    },
+    {
+      "name": "verify",
+      "description": "独立校验草稿里所有 evidence_ref 的回溯有效性。",
+      "status": "ready",
+      "executor": {
+        "type": "cli",
+        "command": [
+          "mine2digest",
+          "verify"
+        ]
+      },
+      "parameters": {
+        "type": "object",
+        "properties": {
+          "file": {
+            "type": "string",
+            "description": "待校验的草稿 Markdown",
+            "argument": "--file"
+          },
+          "require_refs": {
+            "type": "boolean",
+            "description": "Claims 下每条顶层 bullet 必须有 evidence_ref",
+            "argument": "--require-refs",
+            "default": false
+          },
+          "recheck": {
+            "type": "boolean",
+            "description": "重跑 locator（需要 PDF）",
+            "argument": "--recheck",
+            "default": false
+          }
+        },
+        "required": [
+          "file"
+        ],
+        "additionalProperties": false
+      }
+    },
+    {
+      "name": "verify-card",
+      "description": "单独重跑某张卡的 locator 校验。",
+      "status": "ready",
+      "executor": {
+        "type": "cli",
+        "command": [
+          "mine2digest",
+          "verify-card"
+        ]
+      },
+      "parameters": {
+        "type": "object",
+        "properties": {
+          "card_id": {
+            "type": "string",
+            "argument": "--card-id"
+          }
+        },
+        "required": [
+          "card_id"
+        ],
+        "additionalProperties": false
+      }
+    }
+  ]
+}

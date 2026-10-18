@@ -1,0 +1,11 @@
+# conda 环境定义
+# 用法：conda env create -f environment.yml
+#       conda activate mine2digest
+name: mine2digest
+channels:
+  - conda-forge
+dependencies:
+  - python=3.13
+  - pip
+  - pip:
+      - -r requirements-dev.txt

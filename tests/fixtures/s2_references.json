@@ -1,0 +1,39 @@
+{
+  "data": [
+    {
+      "isInfluential": true,
+      "intents": ["methodology"],
+      "contexts": ["We build on the method of [S2A]."],
+      "citedPaper": {
+        "paperId": "S2A",
+        "title": "Method X",
+        "abstract": "A method.",
+        "year": 2019,
+        "venue": "NeurIPS",
+        "externalIds": { "DOI": "10.1/x" }
+      }
+    },
+    {
+      "isInfluential": false,
+      "intents": ["background"],
+      "contexts": ["Background [S2B]."],
+      "citedPaper": {
+        "paperId": "S2B",
+        "title": "Background Y",
+        "year": 2001,
+        "externalIds": {}
+      }
+    },
+    {
+      "isInfluential": false,
+      "intents": ["result"],
+      "contexts": ["Results match [S2C]."],
+      "citedPaper": {
+        "paperId": "S2C",
+        "title": "Result Z",
+        "year": 2020,
+        "externalIds": {}
+      }
+    }
+  ]
+}

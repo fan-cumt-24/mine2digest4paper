@@ -1,0 +1,45 @@
+# mine2digest 标签与阈值：单一真相源（single source of truth）
+# 人编辑，agent 只读。所有枚举、权重、阈值集中在此。
+
+# 参与筛选投票的 agent 标识（submit-vote 校验、tally-votes 读取）
+agent_ids:
+  - A
+  - B
+
+use_types:
+  - support_claim        # 支撑某个论点
+  - baseline             # 直接对比基线
+  - method_borrow        # 可借鉴的方法模块
+  - experiment_design    # 可参照的实验/消融设计
+  - gap_evidence         # 证明研究缺口的证据
+  - contradict           # 反对/限定某结论
+  - style_sample         # 写作结构/视觉风格样本
+  - background           # 背景，无具体可消费元素
+
+target_sections:
+  - intro
+  - related_work
+  - method
+  - experiments
+  - discussion
+
+# fetch 队列排序 = 确认用途类型权重之和
+priority_weights:
+  baseline: 1.0
+  gap_evidence: 1.0
+  support_claim: 0.8
+  contradict: 0.8
+  method_borrow: 0.7
+  experiment_design: 0.7
+  style_sample: 0.3
+  background: 0.1
+
+thresholds:
+  vote_confidence_min: 0.5
+  locator_fuzz_min: 75
+  audit_rate: 0.1
+  audit_pass_min: 0.7
+  audit_window: 200
+  # 复活赛（iter2 使用，schema 已预留）
+  revival_max_rounds: 2
+  revival_discount: 0.5

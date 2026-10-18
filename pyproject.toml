@@ -1,0 +1,40 @@
+[build-system]
+requires = ["setuptools>=68", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "mine2digest"
+version = "0.1.0"
+description = "Batch semi-automatic literature mining to writing-material digest."
+readme = "README.md"
+requires-python = ">=3.11"
+dependencies = [
+    "typer>=0.12",
+    "pydantic>=2.6",
+    "PyYAML>=6.0",
+]
+
+[project.optional-dependencies]
+pdf = ["PyMuPDF>=1.24", "rapidfuzz>=3.6"]
+fetch = ["httpx>=0.27"]
+dev = ["pytest>=8.0"]
+all = ["PyMuPDF>=1.24", "rapidfuzz>=3.6", "httpx>=0.27", "pytest>=8.0"]
+
+[project.scripts]
+mine2digest = "mine2digest.cli:app"
+
+[tool.setuptools]
+package-dir = { "" = "src" }
+
+[tool.setuptools.packages.find]
+where = ["src"]
+
+[tool.setuptools.package-data]
+mine2digest = ["schema.sql", "data/*", "data/*/*"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+addopts = "-q"
+markers = [
+    "integration: 需要真实 LLM / 网络的集成测试，默认跳过",
+]

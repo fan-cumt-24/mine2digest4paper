@@ -1,0 +1,22 @@
+{
+  "votes": [
+    {
+      "paper_id": "p1",
+      "topic_relevant": true,
+      "uses": [
+        {
+          "type": "baseline",
+          "target_section": "experiments",
+          "anchor": "直接对比基线",
+          "confidence": 0.9
+        },
+        {
+          "type": "support_claim",
+          "target_section": "intro",
+          "anchor": "支撑动机论点",
+          "confidence": 0.6
+        }
+      ]
+    }
+  ]
+}

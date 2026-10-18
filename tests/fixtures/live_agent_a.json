@@ -1,0 +1,28 @@
+{
+  "votes": [
+    {
+      "paper_id": "W4362502832",
+      "topic_relevant": false,
+      "uses": [
+        {
+          "type": "background",
+          "target_section": "intro",
+          "anchor": "雾天低对比度和细节模糊仅提供真实视觉输入退化的一般背景，不涉及 CLIP 表示或跨模态泛化机制。",
+          "confidence": 0.3
+        }
+      ]
+    },
+    {
+      "paper_id": "W4407999861",
+      "topic_relevant": false,
+      "uses": [
+        {
+          "type": "background",
+          "target_section": "related_work",
+          "anchor": "作为文档理解多模态应用的相邻背景，说明免OCR处理高分辨率文档的路线，但不涉及CLIP表示、跨域或少样本泛化及参数高效适配。",
+          "confidence": 0.3
+        }
+      ]
+    }
+  ]
+}

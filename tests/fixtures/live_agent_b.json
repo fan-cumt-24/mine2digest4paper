@@ -1,0 +1,46 @@
+{
+  "votes": [
+    {
+      "paper_id": "W4362502832",
+      "topic_relevant": true,
+      "uses": [
+        {
+          "type": "baseline",
+          "target_section": "experiments",
+          "anchor": "命中“可作为直接对比基线”：该文提出雾天图像增强算法，并在四个客观指标上对比分析，可作为同类雾天增强方法基线。",
+          "confidence": 0.9
+        },
+        {
+          "type": "method_borrow",
+          "target_section": "method",
+          "anchor": "命中“提供可借鉴的方法模块”：自适应参数T1/T2控制动态范围CLAHE、同态滤波处理亮暗区域、多尺度细节增强均为可复用模块。",
+          "confidence": 0.94
+        },
+        {
+          "type": "experiment_design",
+          "target_section": "experiments",
+          "anchor": "命中“提供可参照的实验/消融设计”：采用信息熵、局部对比度、平均梯度和运行时间进行主客观联合评价，可直接借鉴。",
+          "confidence": 0.88
+        },
+        {
+          "type": "support_claim",
+          "target_section": "method",
+          "anchor": "命中“支撑某论点”：可支撑“CLAHE动态范围自适应并结合同态滤波与多尺度细节可兼顾对比度和细节”的论点。",
+          "confidence": 0.78
+        }
+      ]
+    },
+    {
+      "paper_id": "W4407999861",
+      "topic_relevant": false,
+      "uses": [
+        {
+          "type": "background",
+          "target_section": "related_work",
+          "anchor": "仅作为文档多模态大模型免OCR与动态分辨率处理的相邻背景；未涉及CLIP表示、跨域或少样本泛化及参数高效适配。",
+          "confidence": 0.3
+        }
+      ]
+    }
+  ]
+}

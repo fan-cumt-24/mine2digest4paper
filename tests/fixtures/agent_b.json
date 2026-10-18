@@ -1,0 +1,16 @@
+{
+  "votes": [
+    {
+      "paper_id": "p1",
+      "topic_relevant": true,
+      "uses": [
+        {
+          "type": "baseline",
+          "target_section": "experiments",
+          "anchor": "纳入规则1：可作基线",
+          "confidence": 0.85
+        }
+      ]
+    }
+  ]
+}

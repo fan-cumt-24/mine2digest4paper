@@ -1,0 +1,10 @@
+{
+  "notes": [
+    {
+      "content": {
+        "title": { "value": "Some Paper" },
+        "pdf": { "value": "/pdf/abc123.pdf" }
+      }
+    }
+  ]
+}

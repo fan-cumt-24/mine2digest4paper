@@ -1,0 +1,21 @@
+# 私密配置（含 UNPAYWALL_EMAIL 等）
+config/.env
+
+# 运行时产物
+m2d/
+tmp/
+drafts/
+db/
+papers/
+inbox/
+exports/
+outputs/
+logs/
+live/
+
+# python
+__pycache__/
+*.pyc
+*.egg-info/
+.pytest_cache/
+.venv/

@@ -1,0 +1,12 @@
+# mine2digest 运行时依赖（迭代 0 + 1a）
+# 用法：pip install -r requirements.txt
+# 注意：仍推荐 `pip install -e .` 以安装本包并注册 `mine2digest` 命令。
+
+typer>=0.12
+pydantic>=2.6
+PyYAML>=6.0
+
+# --- 1c/1d 已用到（联网获取与 PDF 阅读）---
+httpx>=0.27            # 1c fetchters / 脚本
+PyMuPDF>=1.24          # 1d PDF 文本提取
+rapidfuzz>=3.6         # 1d locator 校验

@@ -1,0 +1,6 @@
+# 开发依赖（含运行时依赖）
+# 用法：pip install -r requirements-dev.txt
+
+-r requirements.txt
+
+pytest>=8.0
