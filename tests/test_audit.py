@@ -64,7 +64,10 @@ def test_next_caveat_lists_confirmed_cards_without_caveat(isolated, conn):
     result = body(invoke(["next-caveat", "--limit", "5"]))
     assert result["count"] == 1
     assert result["cards"][0]["card_id"] == "c1"
-    assert result["cards"][0]["pages"][0]["text"].strip()
+    assert result["cards"][0]["paper_id"] == "p1"
+    # 页文本按论文去重，放在 papers 段，不在每张卡上重复
+    assert result["papers"][0]["paper_id"] == "p1"
+    assert result["papers"][0]["pages"][0]["text"].strip()
 
 
 def test_add_caveat_sets_text_and_confidence(isolated, conn):

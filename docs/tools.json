@@ -583,7 +583,7 @@
     },
     {
       "name": "next-caveat",
-      "description": "取 caveat IS NULL 且 fulltext_confirmed 的卡（带页文本）。",
+      "description": "取 caveat IS NULL 且 fulltext_confirmed 的卡（按论文去重、预选页文本）。",
       "status": "ready",
       "executor": {
         "type": "cli",
@@ -599,6 +599,21 @@
             "type": "integer",
             "argument": "--limit",
             "default": 5
+          },
+          "out_dir": {
+            "type": "string",
+            "description": "按论文写 caveat-<paper_id>.json 到此目录，只返回清单",
+            "argument": "--out-dir"
+          },
+          "char_budget": {
+            "type": "integer",
+            "description": "每篇页文本字符上限",
+            "argument": "--char-budget"
+          },
+          "top_k": {
+            "type": "integer",
+            "description": "每篇最多选取页数",
+            "argument": "--top-k"
           }
         },
         "required": [],
@@ -637,7 +652,7 @@
     },
     {
       "name": "next-reading",
-      "description": "取 status=fetched 的论文，带 merged_uses / disagreement / 预提取页文本。",
+      "description": "取 status=fetched 的论文，带 merged_uses / disagreement / 预选页文本。",
       "status": "ready",
       "executor": {
         "type": "cli",
@@ -654,6 +669,21 @@
             "description": "最多返回条数",
             "argument": "--limit",
             "default": 5
+          },
+          "out_dir": {
+            "type": "string",
+            "description": "把每篇载荷写成 read-<paper_id>.json 到此目录，只返回清单",
+            "argument": "--out-dir"
+          },
+          "char_budget": {
+            "type": "integer",
+            "description": "每篇页文本字符上限",
+            "argument": "--char-budget"
+          },
+          "top_k": {
+            "type": "integer",
+            "description": "每篇最多选取页数",
+            "argument": "--top-k"
           }
         },
         "required": [],

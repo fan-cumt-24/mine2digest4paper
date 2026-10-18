@@ -3,12 +3,29 @@
 from __future__ import annotations
 
 import json
+import re
 import uuid
+from pathlib import Path
 from typing import Any
 
 from .. import common, db, store
 from ..models import Card, CardFile
-from ..pdf import extract, locator
+from ..pdf import extract, locator, select
+
+
+def safe_id(value: str) -> str:
+    """把 paper_id/card_id 变成可用于文件名的安全串。"""
+    return re.sub(r"[^A-Za-z0-9._-]+", "_", value) or "item"
+
+
+def write_payload(out_dir: str | Path, name: str, payload: dict) -> tuple[Path, int]:
+    """把一个条目 payload 落盘，返回 (路径, 字符数)。"""
+    out = Path(out_dir)
+    out.mkdir(parents=True, exist_ok=True)
+    target = out / name
+    text = json.dumps(payload, ensure_ascii=False)
+    target.write_text(text, encoding="utf-8")
+    return target, len(text)
 
 
 def _as_cards(payload: Any) -> list[Card]:
@@ -39,7 +56,18 @@ def _page_texts_for(conn, paper_id: str) -> dict[int, str]:
     return extract.load_page_texts(paper_dir / extract.EXTRACTED_DIR)
 
 
-def next_reading(limit: int) -> dict:
+def next_reading(
+    limit: int,
+    out_dir: str | Path | None = None,
+    char_budget: int | None = None,
+    top_k: int | None = None,
+) -> dict:
+    labels = common.load_labels()
+    default_top_k, default_budget = select.resolve_budget(labels, "reader")
+    top_k = top_k if top_k is not None else default_top_k
+    char_budget = char_budget if char_budget is not None else default_budget
+    out = Path(out_dir) if out_dir else None
+
     conn = db.connect()
     try:
         rows = conn.execute(
@@ -48,6 +76,7 @@ def next_reading(limit: int) -> dict:
             (limit,),
         ).fetchall()
         papers = []
+        items = []
         for row in rows:
             pid = row["paper_id"]
             merged = conn.execute(
@@ -64,16 +93,35 @@ def next_reading(limit: int) -> dict:
                 )
             ]
             page_texts = _page_texts_for(conn, pid)
-            papers.append(
-                {
-                    **dict(row),
-                    "merged_uses": json.loads(merged["merged_uses"]) if merged else [],
-                    "disagreement": json.loads(merged["disagreement"]) if merged else [],
-                    "confirmed_uses": confirmed,
-                    "pages": [{"page": n, "text": t} for n, t in sorted(page_texts.items())],
-                }
+            selected = select.select_pages(
+                page_texts,
+                f"{row['title']} {row['abstract'] or ''}",
+                top_k=top_k,
+                char_budget=char_budget,
             )
-        return common.ok(count=len(papers), papers=papers)
+            paper = {
+                **dict(row),
+                "merged_uses": json.loads(merged["merged_uses"]) if merged else [],
+                "disagreement": json.loads(merged["disagreement"]) if merged else [],
+                "confirmed_uses": confirmed,
+                "pages": [{"page": n, "text": t} for n, t in selected],
+            }
+            if out is not None:
+                path, size = write_payload(out, f"read-{safe_id(pid)}.json", paper)
+                items.append(
+                    {"paper_id": pid, "path": str(path), "pages": len(selected), "chars": size}
+                )
+            papers.append(paper)
+        if out is not None:
+            return common.ok(
+                count=len(papers),
+                item_count=len(items),
+                items=items,
+                top_k=top_k,
+                char_budget=char_budget,
+                out_dir=str(out),
+            )
+        return common.ok(count=len(papers), papers=papers, top_k=top_k, char_budget=char_budget)
     finally:
         conn.close()
 

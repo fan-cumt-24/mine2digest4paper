@@ -2,18 +2,32 @@
 
 from __future__ import annotations
 
+from pathlib import Path
+
 from .. import audit, common, db
 from ..models import AuditFile, AuditResult, Caveat
-from .b_read import _page_texts_for
+from ..pdf import locator, select
+from .b_read import _page_texts_for, safe_id, write_payload
 
 
-def next_caveat(limit: int) -> dict:
-    """取 caveat IS NULL 且 fulltext_confirmed 的卡，带论文页文本供反证 agent 使用。"""
+def next_caveat(
+    limit: int,
+    out_dir: str | Path | None = None,
+    char_budget: int | None = None,
+    top_k: int | None = None,
+) -> dict:
+    """取 caveat IS NULL 且 fulltext_confirmed 的卡，带**按论文去重且预选**的页文本。"""
+    labels = common.load_labels()
+    default_top_k, default_budget = select.resolve_budget(labels, "caveat")
+    top_k = top_k if top_k is not None else default_top_k
+    char_budget = char_budget if char_budget is not None else default_budget
+    out = Path(out_dir) if out_dir else None
+
     conn = db.connect()
     try:
         rows = conn.execute(
             """
-            SELECT c.*, p.title, p.year, p.venue
+            SELECT c.*, p.title, p.abstract, p.year, p.venue
             FROM evidence_cards c JOIN papers p ON p.paper_id = c.paper_id
             WHERE c.caveat IS NULL AND c.stage = 'fulltext_confirmed'
             ORDER BY c.created_at, c.card_id
@@ -21,13 +35,48 @@ def next_caveat(limit: int) -> dict:
             """,
             (limit,),
         ).fetchall()
-        cards = []
+        grouped: dict[str, list[dict]] = {}
         for row in rows:
-            item = dict(row)
-            page_texts = _page_texts_for(conn, row["paper_id"])
-            item["pages"] = [{"page": n, "text": t} for n, t in sorted(page_texts.items())]
-            cards.append(item)
-        return common.ok(count=len(cards), cards=cards)
+            grouped.setdefault(row["paper_id"], []).append(dict(row))
+
+        papers = []
+        cards: list[dict] = []
+        items: list[dict] = []
+        for pid, group in grouped.items():
+            page_texts = _page_texts_for(conn, pid)
+            pin = {p for r in group for p in locator.parse_pages(r.get("evidence_locator"))}
+            query = " ".join(
+                [group[0].get("title") or "", group[0].get("abstract") or ""]
+                + [f"{r.get('claim') or ''} {r.get('source_span') or ''}" for r in group]
+            )
+            selected = select.select_pages(
+                page_texts, query, top_k=top_k, char_budget=char_budget, pin=pin
+            )
+            pages = [{"page": n, "text": t} for n, t in selected]
+            paper = {"paper_id": pid, "title": group[0].get("title"), "pages": pages}
+            papers.append(paper)
+            paper_cards = []
+            for row in group:
+                card = {k: v for k, v in row.items() if k != "abstract"}
+                card["paper_id"] = pid
+                paper_cards.append(card)
+                cards.append(card)
+            if out is not None:
+                payload = {**paper, "venue": group[0].get("venue"), "cards": paper_cards}
+                path, _size = write_payload(out, f"caveat-{safe_id(pid)}.json", payload)
+                for row in group:
+                    items.append({"card_id": row["card_id"], "paper_id": pid, "path": str(path)})
+
+        if out is not None:
+            return common.ok(
+                count=len(cards),
+                item_count=len(items),
+                items=items,
+                top_k=top_k,
+                char_budget=char_budget,
+                out_dir=str(out),
+            )
+        return common.ok(count=len(cards), papers=papers, cards=cards, top_k=top_k, char_budget=char_budget)
     finally:
         conn.close()
 

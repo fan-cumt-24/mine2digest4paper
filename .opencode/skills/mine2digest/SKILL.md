@@ -136,22 +136,25 @@ python <ASSETS>/scripts/fetch_worker.py --limit 5 --rounds 3 --worker w1
 ```
 成功归档 `<工作区>/papers/{slug}/paper.pdf` + `meta.json`；失败汇总 `<工作区>/exports/fail_list.json`。
 
-**P4 阅读建卡**
+**P4 阅读建卡**（载荷离线化，省 token）
 ```bash
-mine2digest next-reading --limit 5        # 带 merged_uses + 预提取页文本
-# 每篇一个 reader 子任务 -> CardFile JSON -> tmp/cards_<paper_id>.json
+mine2digest next-reading --limit 5 --out-dir tmp   # 每篇写 tmp/read-<paper_id>.json，只回清单
+# 每篇一个 reader 子任务：让子任务自行 Read tmp/read-<paper_id>.json，主 agent 不要读页文本
 mine2digest add-card --file tmp/cards_<paper_id>.json
 ```
+`next-reading` 用确定性词面检索**预选页**并限字符数（`reader_top_k`/`reader_char_budget`，
+可 `--top-k/--char-budget` 覆盖）；**locator 仍对全文校验**，只是模型看到的更少。
 `add-card` 事务内逐条插入并校验 locator；失败整批回滚。
 
-**P5 反证与审计**
+**P5 反证与审计**（同样离线化，页文本按论文去重）
 ```bash
-mine2digest next-caveat --limit 5         # -> 每卡一个 caveat 子任务
+mine2digest next-caveat --limit 5 --out-dir tmp    # 每篇写 tmp/caveat-<paper_id>.json（含 pages + cards）
 mine2digest add-caveat --card-id <id> --file tmp/caveat_<id>.json
 mine2digest audit --rate 0.1              # -> 每张抽样卡一个 auditor 子任务（隔离）
 mine2digest submit-audit --file tmp/audit.json
 mine2digest reject-card --card-id <id> --reason "..."
 ```
+反证页预算 `caveat_top_k`/`caveat_char_budget`，优先并入该卡 `evidence_locator` 命中的页。
 `submit-audit` 按 source 聚合最近 `audit_window` 条样本，**按基准幂等重算**权重。
 
 **P6 模板与图表**

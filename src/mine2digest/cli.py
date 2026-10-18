@@ -190,9 +190,18 @@ def ingest_manual(
 @app.command("next-reading")
 def next_reading(
     limit: int = typer.Option(5, "--limit", help="最多返回条数"),
+    out_dir: Optional[str] = typer.Option(
+        None, "--out-dir", help="把每篇载荷写成 read-<paper_id>.json 到此目录，只返回清单"
+    ),
+    char_budget: Optional[int] = typer.Option(None, "--char-budget", help="每篇页文本字符上限"),
+    top_k: Optional[int] = typer.Option(None, "--top-k", help="每篇最多选取页数"),
 ) -> None:
-    """取 status=fetched 的论文，带 merged_uses / disagreement / 预提取页文本。"""
-    _run("next-reading", {"limit": limit}, lambda: b_read.next_reading(limit))
+    """取 status=fetched 的论文，带 merged_uses / disagreement / 预选页文本。"""
+    _run(
+        "next-reading",
+        {"limit": limit, "out_dir": out_dir, "char_budget": char_budget, "top_k": top_k},
+        lambda: b_read.next_reading(limit, out_dir, char_budget, top_k),
+    )
 
 
 @app.command("add-card")
@@ -214,9 +223,18 @@ def verify_card(
 @app.command("next-caveat")
 def next_caveat(
     limit: int = typer.Option(5, "--limit"),
+    out_dir: Optional[str] = typer.Option(
+        None, "--out-dir", help="按论文写 caveat-<paper_id>.json 到此目录，只返回清单"
+    ),
+    char_budget: Optional[int] = typer.Option(None, "--char-budget", help="每篇页文本字符上限"),
+    top_k: Optional[int] = typer.Option(None, "--top-k", help="每篇最多选取页数"),
 ) -> None:
-    """取 caveat IS NULL 且 fulltext_confirmed 的卡（带页文本）。"""
-    _run("next-caveat", {"limit": limit}, lambda: b_audit.next_caveat(limit))
+    """取 caveat IS NULL 且 fulltext_confirmed 的卡（按论文去重、预选页文本）。"""
+    _run(
+        "next-caveat",
+        {"limit": limit, "out_dir": out_dir, "char_budget": char_budget, "top_k": top_k},
+        lambda: b_audit.next_caveat(limit, out_dir, char_budget, top_k),
+    )
 
 
 @app.command("add-caveat")

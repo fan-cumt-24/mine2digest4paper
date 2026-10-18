@@ -293,6 +293,23 @@ pytest -m integration     # 仅需 MINE2DIGEST_AGENT_CMD 的真实 agent 冒烟
 
 ### 2026-10-18
 
+**优化：阅读/反证的 token 成本（载荷离线化 + 页预选 + 按论文去重）**
+
+- 背景：`next-reading` / `next-caveat` 把**整篇页文本内联在 stdout**，编排 agent 与子任务
+  各读一遍（实测均 ~52k 字符/篇）；`next-caveat` 还按卡重复同一份全文。
+- `next-reading --out-dir tmp` / `next-caveat --out-dir tmp`：每篇（反证按论文）写成
+  `tmp/read-<paper_id>.json` / `tmp/caveat-<paper_id>.json`，**只返回清单**（不含页文本）；
+  缺省不传则保持内联旧行为。
+- 新增 `src/mine2digest/pdf/select.py`：确定性词面检索（TF-IDF 风格）**预选页** + 字符预算，
+  零新依赖；页文本按原序返回、超预算截断；`evidence_locator` 命中页优先。
+  **locator 校验仍对全文**，仅减少送入模型的文本。
+- 预算阈值（`config/labels.yaml` `thresholds`，并镜像到 `src/mine2digest/data/labels.yaml`）：
+  `reader_top_k: 8` / `reader_char_budget: 12000`、`caveat_top_k: 6` / `caveat_char_budget: 8000`；
+  CLI `--top-k` / `--char-budget` 可覆盖。
+- 实测效果：单篇阅读输入从 ~52k 字符降到 ≤12k，且编排端不再过全文，阅读+反证成本约降至 1/5。
+- 测试：新增 `tests/test_select.py`、`tests/test_read_offload.py`；改 `test_reading.py`
+  （改用 papers/cards 结构）。全套 `176 passed, 1 skipped`；`docs/tools.json` 已刷新。
+
 **修复：OpenReview fetcher 抓错 PDF**（`src/mine2digest/fetchers/openreview.py`）
 
 - 现象：`fetchers/openreview.py` 按标题搜索后直接取第一条带 PDF 的笔记，不校验标题。

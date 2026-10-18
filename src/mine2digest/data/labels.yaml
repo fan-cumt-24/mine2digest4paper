@@ -43,3 +43,8 @@ thresholds:
   # 复活赛（iter2 使用，schema 已预留）
   revival_max_rounds: 2
   revival_discount: 0.5
+  # 阅读/反证送入模型的页文本预算（字符），控制 token 成本；locator 仍对全文校验
+  reader_top_k: 8
+  reader_char_budget: 12000
+  caveat_top_k: 6
+  caveat_char_budget: 8000
