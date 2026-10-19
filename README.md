@@ -3,6 +3,8 @@
 批量半自动文献流水线：检索 → 双 agent 双盲筛选 → 取全文 → 证据卡 → 反证/审计 → 覆盖与导出 → 逐节草稿。
 以 **agent skill + CLI** 的形式提供，产物全部落在当前目录的 `m2d/` 工作区。
 
+![mine2digest pipeline](docs/assets/pipeline-overview.png)
+
 ## 使用
 
 要求 Python 3.11+。
